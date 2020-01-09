@@ -2,8 +2,12 @@
 
 namespace ssn {
 
-const float32_t COLOR_VELOCITY = 0.1f;
-const float32_t COLOR_SATURATION = 1.0f;
-const float32_t COLOR_VALUE = 1.0f;
+namespace color {
+
+const color4u8_t SPACE = { 0x00, 0x2b, 0x36, 0xFF };
+const color4u8_t STAR = { 0x58, 0x58, 0x58, 0xFF };
+const color4u8_t SHIP = { 0x00, 0x9d, 0xa3, 0xFF };
+
+};
 
 };

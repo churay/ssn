@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "gfx.h"
+#include "input.h"
 
 #include "ssn_data.h"
 #include "ssn.h"
@@ -41,68 +42,47 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
 
 
 extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
-    // Initialize Global Variables //
-
-    pState->hsvColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-    // Initialize Input //
+    const vec2f32_t shipBasePos( 0.5f, 0.5f ), shipDims( 2.5e-2f, 1.0e-1f );
+    pState->ship = ssn::ship_t( llce::box_t(shipBasePos, shipDims, llce::box_t::anchor_e::c) );
 
     std::memset( pInput, 0, sizeof(ssn::input_t) );
-
-    // Initialize Per-Mode Variables //
 
     return true;
 }
 
 
 extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ssn::output_t* pOutput, const float64_t pDT ) {
-    // NOTE(JRC): The hue is normalized from the standard [0.0, 360.0) range
-    // in simplify conversion calculations.
-    pState->hsvColor.x = std::fmod(
-        pState->hsvColor.x + ssn::COLOR_VELOCITY * pDT, 1.0f );
-    pState->hsvColor.y = ssn::COLOR_SATURATION;
-    pState->hsvColor.z = ssn::COLOR_VALUE;
-    pState->hsvColor.w = 1.0f;
+    vec2i32_t di = { 0, 0 };
+
+    if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_W) ) {
+        di.y += 1;
+    } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_S) ) {
+        di.y -= 1;
+    } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_A) ) {
+        di.x -= 1;
+    } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_D) ) {
+        di.x += 1;
+    }
+
+    pState->ship.move( di.x, di.y );
+
+    pState->ship.update( pDT );
 
     return true;
 }
 
 
 extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    // NOTE(JRC): This code was adapted taken from this tutorial:
-    // https://www.ronja-tutorials.com/2019/04/16/hsv-colorspace.html
-    const static auto hsv2rgb = [] ( const color4f32_t& hsv ) {
-        color4f32_t rgb = {
-            std::fabs( hsv.x * 6.0f - 3.0f ) - 1.0f,
-            2.0f - std::fabs( hsv.x * 6.0f - 2.0f ),
-            2.0f - std::fabs( hsv.x * 6.0f - 4.0f ),
-            1.0f
-        };
-        rgb = glm::clamp( rgb, {0.0f, 0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f} );
-        rgb = glm::mix( {1.0f, 1.0f, 1.0f, 1.0f}, rgb, hsv.y );
-        rgb = hsv.z * rgb;
-        return rgb;
-    };
-
-    const static auto colorf2coloru = [] ( const color4f32_t& cf ) {
-        color4u8_t cu;
-        cu.x = std::floor( cf.x >= 1.0f ? 255 : cf.x * 256.0f );
-        cu.y = std::floor( cf.y >= 1.0f ? 255 : cf.y * 256.0f );
-        cu.z = std::floor( cf.z >= 1.0f ? 255 : cf.z * 256.0f );
-        cu.w = std::floor( cf.w >= 1.0f ? 255 : cf.w * 256.0f );
-        return cu;
-    };
-
     llce::gfx::fbo_context_t metaFBOC(
         pOutput->gfxBufferFBOs[ssn::GFX_BUFFER_MASTER],
         pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER] );
 
-    color4f32_t rgbColor = hsv2rgb( pState->hsvColor );
-    color4u8_t rgbColorByte = colorf2coloru( rgbColor );
     llce::gfx::render_context_t metaRC(
         llce::box_t(-1.0f, -1.0f, 2.0f, 2.0f),
-        &rgbColorByte );
+        &ssn::color::SPACE );
     metaRC.render();
+
+    pState->ship.render();
 
     return true;
 }

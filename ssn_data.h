@@ -5,9 +5,13 @@
 
 namespace ssn {
 
-const extern float32_t COLOR_VELOCITY;
-const extern float32_t COLOR_SATURATION;
-const extern float32_t COLOR_VALUE;
+namespace color {
+
+const extern color4u8_t SPACE;
+const extern color4u8_t STAR;
+const extern color4u8_t SHIP;
+
+};
 
 };
 

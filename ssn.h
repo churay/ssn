@@ -3,6 +3,8 @@
 
 #include <SDL2/SDL.h>
 
+#include "ssn_entities.h"
+
 #include "input.h"
 #include "consts.h"
 
@@ -11,8 +13,8 @@ namespace ssn {
 /// State Types/Variables ///
 
 struct state_t {
-    // FPS State //
-    color4f32_t hsvColor;
+    // Game State //
+    ship_t ship;
 };
 
 /// Input Types/Variables ///
