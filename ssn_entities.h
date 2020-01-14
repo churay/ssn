@@ -4,7 +4,7 @@
 #include <glm/common.hpp>
 
 #include "ssn_entity_t.h"
-#include "box_t.h"
+#include "circle_t.h"
 
 #include "ssn_data.h"
 #include "consts.h"
@@ -21,7 +21,7 @@ class ship_t : public entity_t {
 
     /// Constructors ///
 
-    ship_t( const llce::box_t& pBBox );
+    ship_t( const llce::circle_t& pBounds );
 
     /// Class Functions ///
 

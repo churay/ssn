@@ -42,8 +42,9 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
 
 
 extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
-    const vec2f32_t shipBasePos( 0.5f, 0.5f ), shipDims( 2.5e-2f, 1.0e-1f );
-    pState->ship = ssn::ship_t( llce::box_t(shipBasePos, shipDims, llce::box_t::anchor_e::c) );
+    const vec2f32_t shipCenterPos( 0.5f, 0.5f );
+    const float32_t shipRadius( 2.5e-2f );
+    pState->ship = ssn::ship_t( llce::circle_t(shipCenterPos, shipRadius) );
 
     std::memset( pInput, 0, sizeof(ssn::input_t) );
 

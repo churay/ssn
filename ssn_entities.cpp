@@ -1,10 +1,7 @@
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
-#include <glm/gtx/vector_angle.hpp>
-#include <glm/gtx/matrix_transform_2d.hpp>
-#include <glm/ext/scalar_constants.hpp>
-#include <glm/ext/vector_float2.hpp>
 
+#include "box_t.h"
 #include "gfx.h"
 #include "ssn_entities.h"
 
@@ -12,8 +9,8 @@ namespace ssn {
 
 /// 'ssn::ship_t' Functions ///
 
-ship_t::ship_t( const llce::box_t& pBBox ) :
-        entity_t( pBBox, &ssn::color::SHIP ), mDI( 0, 0 ) {
+ship_t::ship_t( const llce::circle_t& pBounds ) :
+        entity_t( pBounds, &ssn::color::SHIP ), mDI( 0, 0 ) {
     
 }
 
@@ -28,7 +25,7 @@ void ship_t::update( const float64_t pDT ) {
     // TODO(JRC): Adjust final velocity using 'ship_t::MAX_VEL' as an upper limit.
     mAccel = MOVE_ACCEL * mDI;
     mVel += static_cast<float32_t>( pDT ) * mAccel;
-    mBBox.mPos += static_cast<float32_t>( pDT ) * mVel;
+    mBounds.mCenter += static_cast<float32_t>( pDT ) * mVel;
 }
 
 }
