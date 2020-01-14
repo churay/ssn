@@ -11,22 +11,40 @@
 
 namespace ssn {
 
-class ship_t : public entity_t {
+class bounds_t : public entity_t {
+    public:
+
+    /// Constructors ///
+
+    bounds_t( const llce::box_t& pBBox );
+
+    /// Class Functions ///
+
+    void render() const;
+
+    /// Class Fields ///
+
+    public:
+};
+
+
+class paddle_t : public entity_t {
     public:
 
     /// Class Attributes ///
 
     constexpr static float32_t MAX_VEL = 1.0e0f;    // units: world / second
-    constexpr static float32_t MOVE_ACCEL = 8.0e-2f; // units: world / second**2
+    constexpr static float32_t MOVE_ACCEL = 2.0e-1f; // units: world / second**2
 
     /// Constructors ///
 
-    ship_t( const llce::circle_t& pBounds );
+    paddle_t( const llce::circle_t& pBounds );
 
     /// Class Functions ///
 
     void update( const float64_t pDT );
     void move( const int32_t pDX, const int32_t pDY );
+    void render() const;
 
     /// Class Fields ///
 

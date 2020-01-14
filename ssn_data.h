@@ -7,9 +7,8 @@ namespace ssn {
 
 namespace color {
 
-const extern color4u8_t SPACE;
-const extern color4u8_t STAR;
-const extern color4u8_t SHIP;
+const extern color4u8_t BACKGROUND;
+const extern color4u8_t PADDLE;
 
 };
 

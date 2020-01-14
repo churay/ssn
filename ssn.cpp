@@ -42,9 +42,13 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
 
 
 extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
-    const vec2f32_t shipCenterPos( 0.5f, 0.5f );
-    const float32_t shipRadius( 2.5e-2f );
-    pState->ship = ssn::ship_t( llce::circle_t(shipCenterPos, shipRadius) );
+    const vec2f32_t boundsBasePos( 0.0f, 0.0f );
+    const vec2f32_t boundsDims( 1.0f, 1.0f );
+    pState->bounds = ssn::bounds_t( llce::box_t(boundsBasePos, boundsDims) );
+
+    const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
+    const float32_t paddleRadius( 2.5e-2f );
+    pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius) );
 
     std::memset( pInput, 0, sizeof(ssn::input_t) );
 
@@ -53,6 +57,8 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
 
 extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ssn::output_t* pOutput, const float64_t pDT ) {
+    // Input Processing //
+
     vec2i32_t di = { 0, 0 };
 
     if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_W) ) {
@@ -65,9 +71,24 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
         di.x += 1;
     }
 
-    pState->ship.move( di.x, di.y );
+    // Game State Update //
 
-    pState->ship.update( pDT );
+    ssn::bounds_t* const bounds = &pState->bounds;
+    ssn::paddle_t* const paddle = &pState->paddle;
+
+    paddle->move( di.x, di.y );
+
+    paddle->update( pDT );
+
+    // Collision Resolution //
+
+    if( !bounds->mBBox.contains(paddle->mBBox) ) {
+        paddle->mVel = vec2f32_t( 0.0f, 0.0f );
+        paddle->mAccel = vec2f32_t( 0.0f, 0.0f );
+    }
+
+    paddle->mBBox.embed( bounds->mBBox );
+    paddle->mBounds.mCenter = paddle->mBBox.center();
 
     return true;
 }
@@ -80,10 +101,11 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
 
     llce::gfx::render_context_t metaRC(
         llce::box_t(-1.0f, -1.0f, 2.0f, 2.0f),
-        &ssn::color::SPACE );
+        &ssn::color::BACKGROUND );
     metaRC.render();
 
-    pState->ship.render();
+    pState->bounds.render();
+    pState->paddle.render();
 
     return true;
 }

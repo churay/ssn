@@ -14,7 +14,8 @@ namespace ssn {
 
 struct state_t {
     // Game State //
-    ship_t ship;
+    bounds_t bounds;
+    paddle_t paddle;
 };
 
 /// Input Types/Variables ///
