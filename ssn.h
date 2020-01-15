@@ -15,6 +15,7 @@ namespace ssn {
 struct state_t {
     // Game State //
     bounds_t bounds;
+    puck_t puck;
     paddle_t paddle;
 };
 

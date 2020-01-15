@@ -42,15 +42,37 @@ class paddle_t : public entity_t {
 
     /// Class Functions ///
 
-    void update( const float64_t pDT );
     void move( const int32_t pDX, const int32_t pDY );
-    void render() const;
+
+    void update( const float64_t pDT );
 
     /// Class Fields ///
 
     public:
 
     vec2f32_t mDI;
+};
+
+
+class puck_t : public entity_t {
+    public:
+
+    /// Class Attributes ///
+
+    constexpr static float32_t MAX_VEL = 1.0e0f;    // units: world / second
+    constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
+
+    /// Constructors ///
+
+    puck_t( const llce::circle_t& pBounds );
+
+    /// Class Functions ///
+
+    void hit( const entity_t* pSource );
+
+    /// Class Fields ///
+
+    public:
 };
 
 }

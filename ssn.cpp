@@ -46,6 +46,10 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     const vec2f32_t boundsDims( 1.0f, 1.0f );
     pState->bounds = ssn::bounds_t( llce::box_t(boundsBasePos, boundsDims) );
 
+    const vec2f32_t puckCenterPos( 0.25f, 0.5f );
+    const float32_t puckRadius( 6.0e-2f / 2.0f );
+    pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius) );
+
     const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
     const float32_t paddleRadius( 6.0e-2f );
     pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius) );
@@ -74,21 +78,31 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     // Game State Update //
 
     ssn::bounds_t* const bounds = &pState->bounds;
+    ssn::puck_t* const puck = &pState->puck;
     ssn::paddle_t* const paddle = &pState->paddle;
 
     paddle->move( di.x, di.y );
 
+    bounds->update( pDT );
+    puck->update( pDT );
     paddle->update( pDT );
 
     // Collision Resolution //
 
     if( !bounds->mBBox.contains(paddle->mBBox) ) {
-        paddle->mVel = vec2f32_t( 0.0f, 0.0f );
-        paddle->mAccel = vec2f32_t( 0.0f, 0.0f );
+        vec2f32_t collVec(
+            static_cast<float32_t>(bounds->mBBox.xbounds().contains(paddle->mBBox.xbounds())),
+            static_cast<float32_t>(bounds->mBBox.ybounds().contains(paddle->mBBox.ybounds())) );
+        paddle->mVel = vec2f32_t( collVec.x * paddle->mVel.x, collVec.y * paddle->mVel.y );
+        paddle->mAccel = vec2f32_t( collVec.x * paddle->mAccel.x, collVec.y * paddle->mAccel.y );
     }
 
     paddle->mBBox.embed( bounds->mBBox );
     paddle->mBounds.mCenter = paddle->mBBox.center();
+
+    puck->hit( paddle );
+
+    // TODO(JRC): Puck position is modulo the bounds.
 
     return true;
 }
@@ -105,6 +119,7 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
     metaRC.render();
 
     pState->bounds.render();
+    pState->puck.render();
     pState->paddle.render();
 
     return true;

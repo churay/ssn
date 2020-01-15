@@ -1,6 +1,6 @@
 #include <SDL2/SDL_opengl.h>
-#include <glm/glm.hpp>
-#include <glm/ext/matrix_transform.hpp>
+#include <glm/common.hpp>
+#include <glm/geometric.hpp>
 
 #include "box_t.h"
 #include "gfx.h"
@@ -43,22 +43,23 @@ void paddle_t::update( const float64_t pDT ) {
     mBBox.mPos += static_cast<float32_t>( pDT ) * mVel;
 }
 
-void paddle_t::render() const {
-    llce::gfx::render_context_t entityRC( mBBox, mColor );
-    glPushMatrix(); {
-        glm::mat4 matModelWorld( 1.0f );
-        matModelWorld *= glm::translate( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.0f) );
-        matModelWorld *= glm::scale( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f) );
-        glMultMatrixf( &matModelWorld[0][0] );
+/// 'ssn::puck_t' Functions ///
 
-        glBegin( GL_POLYGON );
-        for( uint32_t segmentIdx = 0; segmentIdx < entity_t::SEGMENT_COUNT;  ++segmentIdx ) {
-            float32_t segmentRadians = 2.0f * M_PI *
-                ( segmentIdx / (entity_t::SEGMENT_COUNT + 0.0f) );
-            glVertex2f( std::cos(segmentRadians), std::sin(segmentRadians) );
-        }
-        glEnd();
-    } glPopMatrix();
+puck_t::puck_t( const llce::circle_t& pBounds ) :
+        entity_t( pBounds, &ssn::color::PUCK ) {
+    
+}
+
+
+void puck_t::hit( const entity_t* pSource ) {
+    if( pSource->mBounds.overlaps(mBounds) ) {
+        mBounds.exbed( pSource->mBounds );
+        mBBox.mPos = mBounds.mCenter - 0.5f * mBBox.mDims;
+
+        vec2f32_t hitVec = glm::normalize( mBounds.mCenter - pSource->mBounds.mCenter );
+        float32_t hitMag = glm::length( pSource->mVel );
+        mVel = hitVec * hitMag;
+    }
 }
 
 }
