@@ -1,6 +1,6 @@
 #include <SDL2/SDL_opengl.h>
-#include <glm/common.hpp>
-#include <glm/geometric.hpp>
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
 
 #include "box_t.h"
 #include "gfx.h"
@@ -45,13 +45,20 @@ void paddle_t::update( const float64_t pDT ) {
 
 void paddle_t::render() const {
     llce::gfx::render_context_t entityRC( mBBox, mColor );
-    glBegin( GL_POLYGON );
+    glPushMatrix(); {
+        glm::mat4 matModelWorld( 1.0f );
+        matModelWorld *= glm::translate( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.0f) );
+        matModelWorld *= glm::scale( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f) );
+        glMultMatrixf( &matModelWorld[0][0] );
+
+        glBegin( GL_POLYGON );
         for( uint32_t segmentIdx = 0; segmentIdx < entity_t::SEGMENT_COUNT;  ++segmentIdx ) {
             float32_t segmentRadians = 2.0f * M_PI *
                 ( segmentIdx / (entity_t::SEGMENT_COUNT + 0.0f) );
             glVertex2f( std::cos(segmentRadians), std::sin(segmentRadians) );
         }
-    glEnd();
+        glEnd();
+    } glPopMatrix();
 }
 
 }

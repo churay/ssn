@@ -34,7 +34,7 @@ class paddle_t : public entity_t {
     /// Class Attributes ///
 
     constexpr static float32_t MAX_VEL = 1.0e0f;    // units: world / second
-    constexpr static float32_t MOVE_ACCEL = 2.0e-1f; // units: world / second**2
+    constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
 
     /// Constructors ///
 

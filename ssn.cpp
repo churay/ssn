@@ -47,7 +47,7 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->bounds = ssn::bounds_t( llce::box_t(boundsBasePos, boundsDims) );
 
     const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
-    const float32_t paddleRadius( 2.5e-2f );
+    const float32_t paddleRadius( 6.0e-2f );
     pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius) );
 
     std::memset( pInput, 0, sizeof(ssn::input_t) );
