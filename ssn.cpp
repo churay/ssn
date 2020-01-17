@@ -145,15 +145,15 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
 
     // FIXME: There's a more elegant way to accomplish this using a different
     // coordinate system or rendering technique.
-    // if( !bounds->mBBox.xbounds().overlaps(puck->mBBox.xbounds()) ) {
-    //     llce::box_t oppBBox( vec2f32_t(std::fmod(puck->mBBox.max().x, bounds->mBBox.max().x) + bounds->mBBox.min().x, puck->mBBox.min().y), pState->puck.mBBox.mDims, llce::box_t::anchor_e::se );
-    //     puck_t tempPuck( llce::circle_t(oppBBox.center(), puck->mBounds.mRadius) );
-    //     tempPuck.render();
-    // } if( !bounds->mBBox.ybounds().overlaps(puck->mBBox.ybounds()) ) {
-    //     llce::box_t oppBBox( vec2f32_t(std::fmod(puck->mBBox.max().y, bounds->mBBox.max().y) + bounds->mBBox.min().y, puck->mBBox.min().x), pState->puck.mBBox.mDims, llce::box_t::anchor_e::nw );
-    //     puck_t tempPuck( llce::circle_t(oppBBox.center(), puck->mBounds.mRadius) );
-    //     tempPuck.render();
-    // }
+    if( !bounds->mBBox.xbounds().contains(puck->mBBox.xbounds()) ) {
+        llce::box_t oppBBox( vec2f32_t(std::fmod(puck->mBBox.max().x, bounds->mBBox.max().x) + bounds->mBBox.min().x, puck->mBBox.min().y), pState->puck.mBBox.mDims, llce::box_t::anchor_e::se );
+        puck_t tempPuck( llce::circle_t(oppBBox.center(), puck->mBounds.mRadius) );
+        tempPuck.render();
+    } if( !bounds->mBBox.ybounds().contains(puck->mBBox.ybounds()) ) {
+        llce::box_t oppBBox( vec2f32_t(puck->mBBox.min().x, std::fmod(puck->mBBox.max().y, bounds->mBBox.max().y) + bounds->mBBox.min().y), pState->puck.mBBox.mDims, llce::box_t::anchor_e::nw );
+        puck_t tempPuck( llce::circle_t(oppBBox.center(), puck->mBounds.mRadius) );
+        tempPuck.render();
+    }
 
     paddle->render();
 
