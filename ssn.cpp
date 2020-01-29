@@ -89,38 +89,9 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
     // Collision Resolution //
 
-    if( !bounds->mBBox.contains(paddle->mBBox) ) {
-        vec2f32_t collVec(
-            static_cast<float32_t>(bounds->mBBox.xbounds().contains(paddle->mBBox.xbounds())),
-            static_cast<float32_t>(bounds->mBBox.ybounds().contains(paddle->mBBox.ybounds())) );
-        paddle->mVel = vec2f32_t( collVec.x * paddle->mVel.x, collVec.y * paddle->mVel.y );
-        paddle->mAccel = vec2f32_t( collVec.x * paddle->mAccel.x, collVec.y * paddle->mAccel.y );
-    }
-
-    paddle->mBBox.embed( bounds->mBBox );
-    paddle->mBounds.mCenter = paddle->mBBox.center();
-
+    paddle->wrap( bounds );
     puck->hit( paddle );
-
-    // FIXME: There's a more elegant way to accomplish this using a different
-    // coordinate system or rendering technique.
-    if( puck->mBBox.mPos.x < bounds->mBBox.min().x ) {
-        float32_t wrapDistance = bounds->mBBox.min().x - puck->mBBox.mPos.x;
-        puck->mBBox.mPos.x = bounds->mBBox.max().x - wrapDistance;
-        puck->mBounds.mCenter = puck->mBBox.center();
-    } else if( puck->mBBox.mPos.x > bounds->mBBox.max().x ) {
-        float32_t wrapDistance = puck->mBBox.mPos.x - bounds->mBBox.max().x;
-        puck->mBBox.mPos.x = bounds->mBBox.min().x + wrapDistance;
-        puck->mBounds.mCenter = puck->mBBox.center();
-    } if( puck->mBBox.mPos.y < bounds->mBBox.min().y ) {
-        float32_t wrapDistance = bounds->mBBox.min().y - puck->mBBox.mPos.y;
-        puck->mBBox.mPos.y = bounds->mBBox.max().y - wrapDistance;
-        puck->mBounds.mCenter = puck->mBBox.center();
-    } else if( puck->mBBox.mPos.y > bounds->mBBox.max().y ) {
-        float32_t wrapDistance = puck->mBBox.mPos.y - bounds->mBBox.max().y;
-        puck->mBBox.mPos.y = bounds->mBBox.min().y + wrapDistance;
-        puck->mBounds.mCenter = puck->mBBox.center();
-    }
+    puck->wrap( bounds );
 
     return true;
 }
@@ -142,19 +113,6 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
 
     bounds->render();
     puck->render();
-
-    // FIXME: There's a more elegant way to accomplish this using a different
-    // coordinate system or rendering technique.
-    if( !bounds->mBBox.xbounds().contains(puck->mBBox.xbounds()) ) {
-        llce::box_t oppBBox( vec2f32_t(std::fmod(puck->mBBox.max().x, bounds->mBBox.max().x) + bounds->mBBox.min().x, puck->mBBox.min().y), pState->puck.mBBox.mDims, llce::box_t::anchor_e::se );
-        puck_t tempPuck( llce::circle_t(oppBBox.center(), puck->mBounds.mRadius) );
-        tempPuck.render();
-    } if( !bounds->mBBox.ybounds().contains(puck->mBBox.ybounds()) ) {
-        llce::box_t oppBBox( vec2f32_t(puck->mBBox.min().x, std::fmod(puck->mBBox.max().y, bounds->mBBox.max().y) + bounds->mBBox.min().y), pState->puck.mBBox.mDims, llce::box_t::anchor_e::nw );
-        puck_t tempPuck( llce::circle_t(oppBBox.center(), puck->mBounds.mRadius) );
-        tempPuck.render();
-    }
-
     paddle->render();
 
     return true;

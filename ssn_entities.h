@@ -33,7 +33,6 @@ class paddle_t : public entity_t {
 
     /// Class Attributes ///
 
-    constexpr static float32_t MAX_VEL = 1.0e0f;    // units: world / second
     constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
 
     /// Constructors ///
@@ -42,9 +41,10 @@ class paddle_t : public entity_t {
 
     /// Class Functions ///
 
-    void move( const int32_t pDX, const int32_t pDY );
-
     void update( const float64_t pDT );
+
+    void move( const int32_t pDX, const int32_t pDY );
+    void wrap( const entity_t* pContainer );
 
     /// Class Fields ///
 
@@ -59,6 +59,9 @@ class puck_t : public entity_t {
 
     /// Class Attributes ///
 
+    constexpr static uint32_t BBOX_COUNT = 4;
+    constexpr static uint32_t BBOX_BASE_ID = 0, BBOX_XWRAP_ID = 1, BBOX_YWRAP_ID = 2, BBOX_XYWRAP_ID = 3;
+
     constexpr static float32_t MAX_VEL = 1.0e0f;    // units: world / second
     constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
 
@@ -68,11 +71,17 @@ class puck_t : public entity_t {
 
     /// Class Functions ///
 
+    void update( const float64_t pDT );
+    void render() const;
+
     void hit( const entity_t* pSource );
+    void wrap( const entity_t* pContainer );
 
     /// Class Fields ///
 
     public:
+
+    llce::box_t mBBoxes[BBOX_COUNT];
 };
 
 }

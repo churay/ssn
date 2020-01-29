@@ -32,21 +32,9 @@ void entity_t::update( const float64_t pDT ) {
 
 
 void entity_t::render() const {
+    const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
     llce::gfx::render_context_t entityRC( mBBox, mColor );
-    glPushMatrix(); {
-        glm::mat4 matModelWorld( 1.0f );
-        matModelWorld *= glm::translate( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.0f) );
-        matModelWorld *= glm::scale( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f) );
-        glMultMatrixf( &matModelWorld[0][0] );
-
-        glBegin( GL_POLYGON );
-        for( uint32_t segmentIdx = 0; segmentIdx < entity_t::SEGMENT_COUNT;  ++segmentIdx ) {
-            float32_t segmentRadians = 2.0f * M_PI *
-                ( segmentIdx / (entity_t::SEGMENT_COUNT + 0.0f) );
-            glVertex2f( std::cos(segmentRadians), std::sin(segmentRadians) );
-        }
-        glEnd();
-    } glPopMatrix();
+    llce::gfx::circle::render( csRenderCircle, mColor );
 }
 
 }

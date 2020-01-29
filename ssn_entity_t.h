@@ -12,10 +12,6 @@ namespace ssn {
 class entity_t {
     public:
 
-    /// Class Attributes ///
-
-    constexpr static uint32_t SEGMENT_COUNT = 20; // units: unitless
-
     /// Constructors ///
 
     entity_t( const llce::box_t& pBBox, const color4u8_t* pColor );
