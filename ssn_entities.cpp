@@ -66,16 +66,42 @@ puck_t::puck_t( const llce::circle_t& pBounds ) :
 }
 
 
-void puck_t::update( const float64_t pDT ) {
-    llce::circle_t oldBounds = mBounds;
+void puck_t::update( const float64_t pDT, const entity_t* pContainer ) {
     entity_t::update( pDT );
-    mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
 
-    const vec2f32_t posDelta = mBounds.mCenter - oldBounds.mCenter;
-    for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
-        llce::box_t& puckBBox = mBBoxes[bboxIdx];
-        if( !puckBBox.empty() ) {
-            puckBBox.mPos += posDelta;
+    mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
+    for( uint32_t bboxIdx = puck_t::BBOX_BASE_ID + 1; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
+        mBBoxes[bboxIdx] = llce::box_t();
+    }
+
+    const llce::box_t& oBBox = pContainer->mBBox;
+    if( !oBBox.contains(mBBox) ) {
+        bool32_t isOutsideX = !oBBox.xbounds().contains(mBBox.xbounds());
+        if( isOutsideX ) {
+            mBBoxes[puck_t::BBOX_XWRAP_ID] = llce::box_t(
+                ( mBBox.min().x < oBBox.min().x ) ?
+                    mBBox.min().x + 1.0f : mBBox.min().x - 1.0f,
+                mBBoxes[puck_t::BBOX_BASE_ID].mPos.y,
+                mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
+                mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
+        }
+
+        bool32_t isOutsideY = !oBBox.ybounds().contains(mBBox.ybounds());
+        if( isOutsideY ) {
+            mBBoxes[puck_t::BBOX_YWRAP_ID] = llce::box_t(
+                mBBoxes[puck_t::BBOX_BASE_ID].mPos.x,
+                ( mBBox.min().y < oBBox.min().y ) ?
+                    mBBox.min().y + 1.0f : mBBox.min().y - 1.0f,
+                mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
+                mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
+        }
+
+        if( isOutsideX && isOutsideY ) {
+            mBBoxes[puck_t::BBOX_XYWRAP_ID] = llce::box_t(
+                mBBoxes[puck_t::BBOX_XWRAP_ID].mPos.x,
+                mBBoxes[puck_t::BBOX_YWRAP_ID].mPos.y,
+                mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
+                mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
         }
     }
 }
@@ -116,36 +142,19 @@ void puck_t::hit( const entity_t* pSource ) {
 
 
 void puck_t::wrap( const entity_t* pContainer ) {
-    for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
-        llce::box_t& puckBBox = mBBoxes[bboxIdx];
-        if( !puckBBox.empty() && !pContainer->mBBox.overlaps(puckBBox) ) {
-            puckBBox.mPos = vec2f32_t( 0.0f, 0.0f );
-            puckBBox.mDims = vec2f32_t( 0.0f, 0.0f );
-        }
-    }
-
     if( mBBox.mPos.x < pContainer->mBBox.min().x ) {
-        mBBoxes[puck_t::BBOX_XWRAP_ID] = mBBox;
         float32_t wrapDistance = pContainer->mBBox.min().x - mBBox.mPos.x;
         mBBox.mPos.x = pContainer->mBBox.max().x - wrapDistance;
     } else if( mBBox.mPos.x > pContainer->mBBox.max().x ) {
-        mBBoxes[puck_t::BBOX_XWRAP_ID] = mBBox;
         float32_t wrapDistance = mBBox.mPos.x - pContainer->mBBox.max().x;
         mBBox.mPos.x = pContainer->mBBox.min().x + wrapDistance;
     } if( mBBox.mPos.y < pContainer->mBBox.min().y ) {
-        mBBoxes[puck_t::BBOX_YWRAP_ID] = mBBox;
         float32_t wrapDistance = pContainer->mBBox.min().y - mBBox.mPos.y;
         mBBox.mPos.y = pContainer->mBBox.max().y - wrapDistance;
     } else if( mBBox.mPos.y > pContainer->mBBox.max().y ) {
-        mBBoxes[puck_t::BBOX_YWRAP_ID] = mBBox;
         float32_t wrapDistance = mBBox.mPos.y - pContainer->mBBox.max().y;
         mBBox.mPos.y = pContainer->mBBox.min().y + wrapDistance;
     }
-
-    mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
-    mBounds.mCenter = mBBox.center();
-
-    // TODO(JRC): Figure out how to properly activate the XY wrapped puck.
 }
 
 }

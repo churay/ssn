@@ -84,7 +84,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     paddle->move( di.x, di.y );
 
     bounds->update( pDT );
-    puck->update( pDT );
+    puck->update( pDT, bounds );
     paddle->update( pDT );
 
     // Collision Resolution //

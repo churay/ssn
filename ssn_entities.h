@@ -71,7 +71,7 @@ class puck_t : public entity_t {
 
     /// Class Functions ///
 
-    void update( const float64_t pDT );
+    void update( const float64_t pDT, const entity_t* pContainer );
     void render() const;
 
     void hit( const entity_t* pSource );
