@@ -37,19 +37,19 @@ class paddle_t : public entity_t {
 
     /// Constructors ///
 
-    paddle_t( const llce::circle_t& pBounds );
+    paddle_t( const llce::circle_t& pBounds, const entity_t* pContainer );
 
     /// Class Functions ///
 
     void update( const float64_t pDT );
 
     void move( const int32_t pDX, const int32_t pDY );
-    void wrap( const entity_t* pContainer );
 
     /// Class Fields ///
 
     public:
 
+    const entity_t* mContainer;
     vec2f32_t mDI;
 };
 
@@ -67,20 +67,20 @@ class puck_t : public entity_t {
 
     /// Constructors ///
 
-    puck_t( const llce::circle_t& pBounds );
+    puck_t( const llce::circle_t& pBounds, const entity_t* pContainer );
 
     /// Class Functions ///
 
-    void update( const float64_t pDT, const entity_t* pContainer );
+    void update( const float64_t pDT );
     void render() const;
 
     void hit( const entity_t* pSource );
-    void wrap( const entity_t* pContainer );
 
     /// Class Fields ///
 
     public:
 
+    const entity_t* mContainer;
     llce::box_t mBBoxes[BBOX_COUNT];
 };
 

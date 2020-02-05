@@ -48,11 +48,11 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     const vec2f32_t puckCenterPos( 0.25f, 0.5f );
     const float32_t puckRadius( 6.0e-2f / 2.0f );
-    pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius) );
+    pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius), &pState->bounds );
 
     const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
     const float32_t paddleRadius( 6.0e-2f );
-    pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius) );
+    pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius), &pState->bounds );
 
     std::memset( pInput, 0, sizeof(ssn::input_t) );
 
@@ -84,14 +84,10 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     paddle->move( di.x, di.y );
 
     bounds->update( pDT );
-    puck->update( pDT, bounds );
+    puck->update( pDT );
     paddle->update( pDT );
 
-    // Collision Resolution //
-
-    paddle->wrap( bounds );
     puck->hit( paddle );
-    puck->wrap( bounds );
 
     return true;
 }
