@@ -85,7 +85,7 @@ void puck_t::update( const float64_t pDT ) {
             bool32_t isOutsideX = !oBBox.xbounds().contains(mBBox.xbounds());
             if( isOutsideX ) {
                 mBBoxes[puck_t::BBOX_XWRAP_ID] = llce::box_t(
-                    mBBox.min().x - 1.0f, // NOTE: see wrap code above
+                    mBBox.min().x - oBBox.ybounds().length(), // NOTE: see wrap code above
                     mBBoxes[puck_t::BBOX_BASE_ID].mPos.y,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
@@ -95,7 +95,7 @@ void puck_t::update( const float64_t pDT ) {
             if( isOutsideY ) {
                 mBBoxes[puck_t::BBOX_YWRAP_ID] = llce::box_t(
                     mBBoxes[puck_t::BBOX_BASE_ID].mPos.x,
-                    mBBox.min().y - 1.0f, // NOTE: see wrap code above
+                    mBBox.min().y - oBBox.ybounds().length(), // NOTE: see wrap code above
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
             }
@@ -114,6 +114,28 @@ void puck_t::update( const float64_t pDT ) {
 
 void puck_t::render() const {
     const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
+    const float32_t cursorRadius = puck_t::CURSOR_RATIO * mBounds.mRadius;
+
+    for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
+        const llce::box_t& puckBBox = mBBoxes[bboxIdx];
+        if( !puckBBox.empty() ) {
+            {
+                llce::gfx::render_context_t xCursorRC(
+                    llce::box_t(
+                        mContainer->mBBox.min().x, mBBox.center().y - cursorRadius / 2.0f,
+                        mContainer->mBBox.xbounds().length(), cursorRadius ),
+                    &ssn::color::CURSOR );
+                xCursorRC.render();
+            } {
+                llce::gfx::render_context_t yCursorRC(
+                    llce::box_t(
+                        mBBox.center().x - cursorRadius / 2.0f, mContainer->mBBox.min().y,
+                        cursorRadius, mContainer->mBBox.ybounds().length() ),
+                    &ssn::color::CURSOR );
+                yCursorRC.render();
+            }
+        }
+    }
 
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];

@@ -65,6 +65,8 @@ class puck_t : public entity_t {
     constexpr static float32_t MAX_VEL = 1.0e0f;     // units: world / second
     constexpr static float32_t MIN_VEL = 1.0e-2f;    // units: world / second
 
+    constexpr static float32_t CURSOR_RATIO = 0.5f;  // units: cursor radius / puck radius
+
     /// Constructors ///
 
     puck_t( const llce::circle_t& pBounds, const entity_t* pContainer );
