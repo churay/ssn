@@ -32,7 +32,7 @@ paddle_t::paddle_t( const llce::circle_t& pBounds, const entity_t* pContainer ) 
 
 
 void paddle_t::update( const float64_t pDT ) {
-    mAccel = MOVE_ACCEL * mDI;
+    mAccel = paddle_t::MOVE_ACCEL * mDI;
     entity_t::update( pDT );
 
     const llce::box_t& oBBox = mContainer->mBBox;
@@ -80,7 +80,6 @@ void puck_t::update( const float64_t pDT ) {
     }
 
     { // Update Bounding Boxes //
-        // TODO(JRC): Fix this code so that the wrap actually works.
         const llce::box_t& oBBox = mContainer->mBBox;
         if( !oBBox.contains(mBBox) ) {
             bool32_t isOutsideX = !oBBox.xbounds().contains(mBBox.xbounds());
@@ -136,7 +135,11 @@ void puck_t::hit( const entity_t* pSource ) {
 
                 vec2f32_t hitVec = puckBounds.mCenter - puckBBox.center();
                 vec2f32_t hitDir = glm::normalize( hitVec );
-                float32_t hitMag = glm::length( pSource->mVel );
+                // FIXME(JRC): The unnecessary multiplication here acts as
+                // a workaround to weird interactions between gcc compilation
+                // and raw 'constexpr static' variables.
+                // See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=50785
+                float32_t hitMag = std::max( (1.0f*puck_t::MIN_VEL), glm::length(pSource->mVel) );
 
                 mBounds.mCenter += hitVec;
                 mBBox.mPos += hitVec;

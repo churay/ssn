@@ -62,8 +62,8 @@ class puck_t : public entity_t {
     constexpr static uint32_t BBOX_COUNT = 4;
     constexpr static uint32_t BBOX_BASE_ID = 0, BBOX_XWRAP_ID = 1, BBOX_YWRAP_ID = 2, BBOX_XYWRAP_ID = 3;
 
-    constexpr static float32_t MAX_VEL = 1.0e0f;    // units: world / second
-    constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
+    constexpr static float32_t MAX_VEL = 1.0e0f;     // units: world / second
+    constexpr static float32_t MIN_VEL = 1.0e-2f;    // units: world / second
 
     /// Constructors ///
 
