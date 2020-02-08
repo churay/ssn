@@ -116,22 +116,23 @@ void puck_t::render() const {
     const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
     const float32_t cursorRadius = puck_t::CURSOR_RATIO * mBounds.mRadius;
 
+    // TODO(JRC): Substitute these rendering functions with simple box renders.
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
         if( !puckBBox.empty() ) {
-            {
-                llce::gfx::render_context_t xCursorRC(
-                    llce::box_t(
-                        mContainer->mBBox.min().x, mBBox.center().y - cursorRadius / 2.0f,
-                        mContainer->mBBox.xbounds().length(), cursorRadius ),
-                    &ssn::color::CURSOR );
+            const llce::box_t xCursorBBox(
+                mContainer->mBBox.min().x, puckBBox.center().y - cursorRadius / 2.0f,
+                mContainer->mBBox.xbounds().length(), cursorRadius );
+            if( bboxIdx == puck_t::BBOX_BASE_ID || bboxIdx == puck_t::BBOX_YWRAP_ID ) {
+                llce::gfx::render_context_t xCursorRC( xCursorBBox, &ssn::color::CURSOR );
                 xCursorRC.render();
-            } {
-                llce::gfx::render_context_t yCursorRC(
-                    llce::box_t(
-                        mBBox.center().x - cursorRadius / 2.0f, mContainer->mBBox.min().y,
-                        cursorRadius, mContainer->mBBox.ybounds().length() ),
-                    &ssn::color::CURSOR );
+            }
+
+            const llce::box_t yCursorBBox(
+                puckBBox.center().x - cursorRadius / 2.0f, mContainer->mBBox.min().y,
+                cursorRadius, mContainer->mBBox.ybounds().length() );
+            if( bboxIdx == puck_t::BBOX_BASE_ID || bboxIdx == puck_t::BBOX_XWRAP_ID ) {
+                llce::gfx::render_context_t yCursorRC( yCursorBBox, &ssn::color::CURSOR );
                 yCursorRC.render();
             }
         }
