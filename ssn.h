@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 
 #include "ssn_entities.h"
+#include "ssn_consts.h"
 
 #include "input.h"
 #include "consts.h"

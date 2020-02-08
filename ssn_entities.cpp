@@ -10,6 +10,24 @@
 
 namespace ssn {
 
+/// 'ssn::team_entity_t' Functions ///
+
+team_entity_t::team_entity_t( const llce::box_t& pBBox, const team::team_e& pTeam ) :
+        entity_t( pBBox, &ssn::color::TEAM[pTeam] ), mTeam( pTeam ) {
+    
+}
+
+
+team_entity_t::team_entity_t( const llce::circle_t& pBounds, const team::team_e& pTeam ) :
+        entity_t( pBounds, &ssn::color::TEAM[pTeam] ), mTeam( pTeam ) {
+    
+}
+
+
+void team_entity_t::change( const team::team_e& pTeam ) {
+    mColor = &ssn::color::TEAM[(mTeam = pTeam)];
+}
+
 /// 'ssn::bounds_t' Functions ///
 
 bounds_t::bounds_t( const llce::box_t& pBBox ) :
@@ -25,14 +43,13 @@ void bounds_t::render() const {
 
 /// 'ssn::paddle_t' Functions ///
 
-paddle_t::paddle_t( const llce::circle_t& pBounds, const entity_t* pContainer ) :
-        entity_t( pBounds, &ssn::color::PADDLE ), mContainer( pContainer ), mDI( 0, 0 ) {
+paddle_t::paddle_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer ) :
+        team_entity_t( pBounds, pTeam ), mContainer( pContainer ), mDI( 0, 0 ) {
     
 }
 
 
 void paddle_t::update( const float64_t pDT ) {
-    mAccel = paddle_t::MOVE_ACCEL * mDI;
     entity_t::update( pDT );
 
     const llce::box_t& oBBox = mContainer->mBBox;
@@ -52,12 +69,13 @@ void paddle_t::update( const float64_t pDT ) {
 void paddle_t::move( const int32_t pDX, const int32_t pDY ) {
     mDI.x = static_cast<float32_t>( glm::clamp(pDX, -1, 1) );
     mDI.y = static_cast<float32_t>( glm::clamp(pDY, -1, 1) );
+    mVel = ( pDX || pDY ) ? paddle_t::MAX_VEL * glm::normalize( mDI ) : vec2f32_t( 0.0f, 0.0f );
 }
 
 /// 'ssn::puck_t' Functions ///
 
-puck_t::puck_t( const llce::circle_t& pBounds, const entity_t* pContainer ) :
-        entity_t( pBounds, &ssn::color::PUCK ), mContainer( pContainer ) {
+puck_t::puck_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer ) :
+        team_entity_t( pBounds, pTeam ), mContainer( pContainer ) {
     mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
 }
 
@@ -115,6 +133,7 @@ void puck_t::update( const float64_t pDT ) {
 void puck_t::render() const {
     const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
     const float32_t cursorRadius = puck_t::CURSOR_RATIO * mBounds.mRadius;
+    const color4u8_t cursorColor = { mColor->x, mColor->y, mColor->z, 0x66 };
 
     // TODO(JRC): Substitute these rendering functions with simple box renders.
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
@@ -124,7 +143,7 @@ void puck_t::render() const {
                 mContainer->mBBox.min().x, puckBBox.center().y - cursorRadius / 2.0f,
                 mContainer->mBBox.xbounds().length(), cursorRadius );
             if( bboxIdx == puck_t::BBOX_BASE_ID || bboxIdx == puck_t::BBOX_YWRAP_ID ) {
-                llce::gfx::render_context_t xCursorRC( xCursorBBox, &ssn::color::CURSOR );
+                llce::gfx::render_context_t xCursorRC( xCursorBBox, &cursorColor );
                 xCursorRC.render();
             }
 
@@ -132,7 +151,7 @@ void puck_t::render() const {
                 puckBBox.center().x - cursorRadius / 2.0f, mContainer->mBBox.min().y,
                 cursorRadius, mContainer->mBBox.ybounds().length() );
             if( bboxIdx == puck_t::BBOX_BASE_ID || bboxIdx == puck_t::BBOX_XWRAP_ID ) {
-                llce::gfx::render_context_t yCursorRC( yCursorBBox, &ssn::color::CURSOR );
+                llce::gfx::render_context_t yCursorRC( yCursorBBox, &cursorColor );
                 yCursorRC.render();
             }
         }
@@ -148,7 +167,7 @@ void puck_t::render() const {
 }
 
 
-void puck_t::hit( const entity_t* pSource ) {
+void puck_t::hit( const team_entity_t* pSource ) {
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         llce::box_t& puckBBox = mBBoxes[bboxIdx];
         if( !puckBBox.empty() ) {
@@ -167,6 +186,8 @@ void puck_t::hit( const entity_t* pSource ) {
                 mBounds.mCenter += hitVec;
                 mBBox.mPos += hitVec;
                 mVel = hitDir * hitMag;
+
+                team_entity_t::change( static_cast<ssn::team::team_e>(pSource->mTeam) );
 
                 break;
             }

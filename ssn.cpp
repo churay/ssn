@@ -10,7 +10,7 @@
 #include "gfx.h"
 #include "input.h"
 
-#include "ssn_data.h"
+#include "ssn_consts.h"
 #include "ssn.h"
 
 namespace ssn {
@@ -48,11 +48,13 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     const vec2f32_t puckCenterPos( 0.25f, 0.5f );
     const float32_t puckRadius( 6.0e-2f / 2.0f );
-    pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius), &pState->bounds );
+    pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius),
+        ssn::team::neutral, &pState->bounds );
 
     const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
     const float32_t paddleRadius( 6.0e-2f );
-    pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius), &pState->bounds );
+    pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius),
+        ssn::team::left, &pState->bounds );
 
     std::memset( pInput, 0, sizeof(ssn::input_t) );
 

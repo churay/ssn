@@ -7,9 +7,29 @@
 #include "circle_t.h"
 
 #include "ssn_data.h"
+#include "ssn_consts.h"
 #include "consts.h"
 
 namespace ssn {
+
+class team_entity_t : public entity_t {
+    public:
+
+    /// Constructors ///
+
+    team_entity_t( const llce::box_t& pBBox, const team::team_e& pTeam );
+    team_entity_t( const llce::circle_t& pBounds, const team::team_e& pTeam );
+
+    /// Class Functions ///
+
+    void change( const team::team_e& pTeam );
+
+    /// Class Fields ///
+
+    public:
+
+    uint8_t mTeam;
+};
 
 class bounds_t : public entity_t {
     public:
@@ -28,16 +48,17 @@ class bounds_t : public entity_t {
 };
 
 
-class paddle_t : public entity_t {
+class paddle_t : public team_entity_t {
     public:
 
     /// Class Attributes ///
 
     constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
+    constexpr static float32_t MAX_VEL = 7.5e-1f;    // units: world / second
 
     /// Constructors ///
 
-    paddle_t( const llce::circle_t& pBounds, const entity_t* pContainer );
+    paddle_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer );
 
     /// Class Functions ///
 
@@ -54,7 +75,7 @@ class paddle_t : public entity_t {
 };
 
 
-class puck_t : public entity_t {
+class puck_t : public team_entity_t {
     public:
 
     /// Class Attributes ///
@@ -69,14 +90,14 @@ class puck_t : public entity_t {
 
     /// Constructors ///
 
-    puck_t( const llce::circle_t& pBounds, const entity_t* pContainer );
+    puck_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer );
 
     /// Class Functions ///
 
     void update( const float64_t pDT );
     void render() const;
 
-    void hit( const entity_t* pSource );
+    void hit( const team_entity_t* pSource );
 
     /// Class Fields ///
 
