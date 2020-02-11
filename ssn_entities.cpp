@@ -132,29 +132,30 @@ void puck_t::update( const float64_t pDT ) {
 
 void puck_t::render() const {
     const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
-    const float32_t cursorRadius = puck_t::CURSOR_RATIO * mBounds.mRadius;
-    const color4u8_t cursorColor = { mColor->x, mColor->y, mColor->z, 0x66 };
+    const static auto csRenderCursor = []
+            ( const ssn::puck_t* pPuck, const llce::box_t& pFocusBox, const uint32_t pDim ) {
+        const llce::box_t& boundsBox = pPuck->mContainer->mBBox; 
+        const float32_t cursorRadius = puck_t::CURSOR_RATIO * pPuck->mBounds.mRadius;
+        const color4u8_t cursorColor = *pPuck->mColor - color4u8_t{ 0x00, 0x00, 0x00, 0xaa };
 
-    // TODO(JRC): Substitute these rendering functions with simple box renders.
-    for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
-        const llce::box_t& puckBBox = mBBoxes[bboxIdx];
-        if( !puckBBox.empty() ) {
-            const llce::box_t xCursorBBox(
-                mContainer->mBBox.min().x, puckBBox.center().y - cursorRadius / 2.0f,
-                mContainer->mBBox.xbounds().length(), cursorRadius );
-            if( bboxIdx == puck_t::BBOX_BASE_ID || bboxIdx == puck_t::BBOX_YWRAP_ID ) {
-                llce::gfx::render_context_t xCursorRC( xCursorBBox, &cursorColor );
-                xCursorRC.render();
-            }
+        const llce::box_t cursorBox = ( pDim == puck_t::BBOX_XWRAP_ID ) ?
+            llce::box_t(
+                boundsBox.min().x, pFocusBox.center().y - cursorRadius / 2.0f,
+                boundsBox.xbounds().length(), cursorRadius ) :
+            llce::box_t(
+                pFocusBox.center().x - cursorRadius / 2.0f, boundsBox.min().y,
+                cursorRadius, boundsBox.ybounds().length() );
 
-            const llce::box_t yCursorBBox(
-                puckBBox.center().x - cursorRadius / 2.0f, mContainer->mBBox.min().y,
-                cursorRadius, mContainer->mBBox.ybounds().length() );
-            if( bboxIdx == puck_t::BBOX_BASE_ID || bboxIdx == puck_t::BBOX_XWRAP_ID ) {
-                llce::gfx::render_context_t yCursorRC( yCursorBBox, &cursorColor );
-                yCursorRC.render();
-            }
-        }
+        llce::gfx::render_context_t cursorRC( cursorBox, &cursorColor );
+        cursorRC.render();
+    };
+
+    csRenderCursor( this, mBBoxes[puck_t::BBOX_BASE_ID], puck_t::BBOX_XWRAP_ID );
+    csRenderCursor( this, mBBoxes[puck_t::BBOX_BASE_ID], puck_t::BBOX_YWRAP_ID );
+    if( !mBBoxes[puck_t::BBOX_XWRAP_ID].empty() ) {
+        csRenderCursor( this, mBBoxes[puck_t::BBOX_XWRAP_ID], puck_t::BBOX_YWRAP_ID );
+    } if( !mBBoxes[puck_t::BBOX_YWRAP_ID].empty() ) {
+        csRenderCursor( this, mBBoxes[puck_t::BBOX_YWRAP_ID], puck_t::BBOX_XWRAP_ID );
     }
 
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
