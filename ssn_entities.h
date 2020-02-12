@@ -40,7 +40,7 @@ class bounds_t : public entity_t {
     constexpr static uint32_t AREA_CORNER_COUNT = 3;
     constexpr static uint32_t AREA_MAX_COUNT = 100;
 
-    constexpr static float32_t CORNER_RATIO = 1.0e-2f;   // units: corner size / bound size
+    constexpr static float32_t CORNER_RATIO = 3.0e-2f;   // units: corner size / bound size
 
     /// Constructors ///
 

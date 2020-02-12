@@ -51,12 +51,11 @@ void bounds_t::render() const {
     }
     glEnd();
 
-    glBegin( GL_POINTS );
+    const float32_t cCornerRadius = mBBox.xbounds().length() * bounds_t::CORNER_RATIO;
     for( uint32_t cornerIdx = 0; cornerIdx < mCurrAreaCount; cornerIdx++ ) {
-        glColor4ubv( (uint8_t*)&ssn::color::TEAM[mCurrAreaTeam] );
-        glVertex2fv( (float32_t*)&mCurrAreaCorners[cornerIdx] );
+        llce::circle_t cornerCircle( mCurrAreaCorners[cornerIdx], cCornerRadius );
+        llce::gfx::circle::render( cornerCircle, &ssn::color::TEAM[mCurrAreaTeam] );
     }
-    glEnd();
 }
 
 
