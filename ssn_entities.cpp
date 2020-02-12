@@ -32,13 +32,51 @@ void team_entity_t::change( const team::team_e& pTeam ) {
 
 bounds_t::bounds_t( const llce::box_t& pBBox ) :
         entity_t( pBBox, &ssn::color::BACKGROUND ) {
-    
+    mCurrAreaTeam = ssn::team::neutral;
+    mCurrAreaCount = mAreaCount = 0;
 }
 
 
 void bounds_t::render() const {
     llce::gfx::render_context_t baseRC( mBBox, mColor );
     baseRC.render();
+
+    glBegin( GL_TRIANGLES );
+    for( uint32_t areaIdx = 0; areaIdx < mAreaCount; areaIdx++ ) {
+        glColor4ubv( (uint8_t*)&ssn::color::TEAM[mAreaTeams[areaIdx]] );
+        for( uint32_t cornerIdx = 0; cornerIdx < AREA_CORNER_COUNT; cornerIdx++ ) {
+            uint32_t areaCornerIdx = areaIdx * AREA_CORNER_COUNT + cornerIdx;
+            glVertex2fv( (float32_t*)&mAreaCorners[areaCornerIdx] );
+        }
+    }
+    glEnd();
+
+    glBegin( GL_POINTS );
+    for( uint32_t cornerIdx = 0; cornerIdx < mCurrAreaCount; cornerIdx++ ) {
+        glColor4ubv( (uint8_t*)&ssn::color::TEAM[mCurrAreaTeam] );
+        glVertex2fv( (float32_t*)&mCurrAreaCorners[cornerIdx] );
+    }
+    glEnd();
+}
+
+
+void bounds_t::claim( const team_entity_t* pSource ) {
+    if( pSource->mTeam != mCurrAreaTeam ) {
+        mCurrAreaTeam = pSource->mTeam;
+        mCurrAreaCount = 0;
+    }
+
+    mCurrAreaCorners[mCurrAreaCount++] = pSource->mBounds.mCenter;
+    if( mCurrAreaCount == bounds_t::AREA_CORNER_COUNT ) {
+        for( uint32_t cornerIdx = 0; cornerIdx < AREA_CORNER_COUNT; cornerIdx++ ) {
+            uint32_t areaCornerIdx = mAreaCount * AREA_CORNER_COUNT + cornerIdx;
+            mAreaCorners[areaCornerIdx] = mCurrAreaCorners[cornerIdx];
+        }
+        mAreaTeams[mAreaCount++] = mCurrAreaTeam;
+
+        mCurrAreaTeam = ssn::team::neutral;
+        mCurrAreaCount = 0;
+    }
 }
 
 /// 'ssn::paddle_t' Functions ///
@@ -168,7 +206,7 @@ void puck_t::render() const {
 }
 
 
-void puck_t::hit( const team_entity_t* pSource ) {
+bool32_t puck_t::hit( const team_entity_t* pSource ) {
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         llce::box_t& puckBBox = mBBoxes[bboxIdx];
         if( !puckBBox.empty() ) {
@@ -190,10 +228,12 @@ void puck_t::hit( const team_entity_t* pSource ) {
 
                 team_entity_t::change( static_cast<ssn::team::team_e>(pSource->mTeam) );
 
-                break;
+                return true;
             }
         }
     }
+
+    return false;
 }
 
 }

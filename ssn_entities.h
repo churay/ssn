@@ -31,8 +31,16 @@ class team_entity_t : public entity_t {
     uint8_t mTeam;
 };
 
+
 class bounds_t : public entity_t {
     public:
+
+    /// Class Attributes ///
+
+    constexpr static uint32_t AREA_CORNER_COUNT = 3;
+    constexpr static uint32_t AREA_MAX_COUNT = 100;
+
+    constexpr static float32_t CORNER_RATIO = 1.0e-2f;   // units: corner size / bound size
 
     /// Constructors ///
 
@@ -42,9 +50,18 @@ class bounds_t : public entity_t {
 
     void render() const;
 
+    void claim( const team_entity_t* pSource );
+
     /// Class Fields ///
 
     public:
+
+    vec2f32_t mCurrAreaCorners[AREA_CORNER_COUNT];
+    uint8_t mCurrAreaTeam;
+    uint32_t mCurrAreaCount;
+    vec2f32_t mAreaCorners[AREA_MAX_COUNT * AREA_CORNER_COUNT];
+    uint8_t mAreaTeams[AREA_MAX_COUNT];
+    uint32_t mAreaCount;
 };
 
 
@@ -83,10 +100,10 @@ class puck_t : public team_entity_t {
     constexpr static uint32_t BBOX_COUNT = 4;
     constexpr static uint32_t BBOX_BASE_ID = 0, BBOX_XWRAP_ID = 1, BBOX_YWRAP_ID = 2, BBOX_XYWRAP_ID = 3;
 
-    constexpr static float32_t MAX_VEL = 1.0e0f;     // units: world / second
-    constexpr static float32_t MIN_VEL = 1.0e-2f;    // units: world / second
+    constexpr static float32_t MAX_VEL = 1.0e0f;        // units: world / second
+    constexpr static float32_t MIN_VEL = 1.0e-2f;       // units: world / second
 
-    constexpr static float32_t CURSOR_RATIO = 0.5f;  // units: cursor radius / puck radius
+    constexpr static float32_t CURSOR_RATIO = 5.0e-1f;  // units: cursor radius / puck radius
 
     /// Constructors ///
 
@@ -97,7 +114,7 @@ class puck_t : public team_entity_t {
     void update( const float64_t pDT );
     void render() const;
 
-    void hit( const team_entity_t* pSource );
+    bool32_t hit( const team_entity_t* pSource );
 
     /// Class Fields ///
 

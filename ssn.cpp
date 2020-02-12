@@ -89,7 +89,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     puck->update( pDT );
     paddle->update( pDT );
 
-    puck->hit( paddle );
+    if( puck->hit(paddle) ) { bounds->claim( paddle ); }
 
     return true;
 }
