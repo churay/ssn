@@ -63,33 +63,88 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
 
 extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ssn::output_t* pOutput, const float64_t pDT ) {
-    // Input Processing //
-
     vec2i32_t di = { 0, 0 };
 
-    if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_W) ) {
-        di.y += 1;
-    } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_S) ) {
-        di.y -= 1;
-    } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_A) ) {
-        di.x -= 1;
-    } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_D) ) {
-        di.x += 1;
+    { // Input Processing //
+        if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_W) ) {
+            di.y += 1;
+        } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_S) ) {
+            di.y -= 1;
+        } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_A) ) {
+            di.x -= 1;
+        } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_D) ) {
+            di.x += 1;
+        }
     }
-
-    // Game State Update //
 
     ssn::bounds_t* const bounds = &pState->bounds;
     ssn::puck_t* const puck = &pState->puck;
     ssn::paddle_t* const paddle = &pState->paddle;
 
-    paddle->move( di.x, di.y );
+    { // Game State Update //
+        paddle->move( di.x, di.y );
 
-    bounds->update( pDT );
-    puck->update( pDT );
-    paddle->update( pDT );
+        bounds->update( pDT );
+        puck->update( pDT );
+        paddle->update( pDT );
 
-    if( puck->hit(paddle) ) { bounds->claim( paddle ); }
+        if( puck->hit(paddle) ) { bounds->claim( paddle ); }
+    }
+
+    { // Game Scoring //
+        vec2i32_t scores = { 0, 0 };
+
+        if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) {
+            // NOTE(JRC): The source for this algorithm was derived from here:
+            // http://geomalgorithms.com/a03-_inclusion.html
+            const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
+                int32_t windCount = 0;
+
+                for( uint32_t cornerIdx = 0; cornerIdx < bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
+                    const vec2f32_t& cornerStart = pArea[cornerIdx];
+                    const vec2f32_t& cornerEnd = pArea[(cornerIdx + 1) % bounds_t::AREA_CORNER_COUNT];
+
+                    // if the corner edge intersects the point x-axis ray upward...
+                    if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
+                        // and the point is strictly left of the edge
+                        if( cornerStart.x > pPoint.x && cornerEnd.x > pPoint.x ) {
+                            windCount++;
+                        }
+                    // if the corner edge intersects the point x-axis ray downward...
+                    } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
+                        // and the point is strictly right of the edge
+                        if( cornerStart.x < pPoint.x && cornerEnd.x < pPoint.x ) {
+                            windCount--;
+                        }
+                    }
+                }
+
+                return windCount != 0;
+            };
+
+            const vec2u32_t& cPixelRes = pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER];
+            for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
+                for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
+                    vec2f32_t pixelPos(
+                        bounds->mBBox.xbounds().interp( (xPixelIdx + 0.5f) / cPixelRes.x ),
+                        bounds->mBBox.ybounds().interp( (yPixelIdx + 0.5f) / cPixelRes.y ) );
+
+                    for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
+                        vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * bounds_t::AREA_CORNER_COUNT];
+                        if( csPointInArea(pixelPos, areaPoss) ) {
+                            (*VECTOR_AT(scores, bounds->mAreaTeams[areaIdx]))++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const uint32_t cPixelTotal = cPixelRes.x * cPixelRes.y;
+            std::cout << "Scores:" << std::endl;
+            std::cout << "  Left: " << (*VECTOR_AT(scores, ssn::team::left)) / ( cPixelTotal + 0.0f ) << std::endl;
+            std::cout << "  Right: " << (*VECTOR_AT(scores, ssn::team::right)) / ( cPixelTotal + 0.0f ) << std::endl;
+        }
+    }
 
     return true;
 }
@@ -109,9 +164,11 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
     const ssn::puck_t* const puck = &pState->puck;
     const ssn::paddle_t* const paddle = &pState->paddle;
 
-    bounds->render();
-    puck->render();
-    paddle->render();
+    { // Game State Render //
+        bounds->render();
+        puck->render();
+        paddle->render();
+    }
 
     return true;
 }
