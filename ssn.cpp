@@ -56,6 +56,27 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius),
         ssn::team::left, &pState->bounds );
 
+    // { // Testing Score Calculations //
+    //     ssn::team_entity_t testEntity( llce::circle_t(0.0f, 0.0f, 0.0f), ssn::team::right );
+
+    //     const vec2f32_t cTestAreas[2][3] = {
+    //         {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}},
+    //         {{0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f}} };
+    //     const ssn::team::team_e cTestTeams[] = {
+    //         ssn::team::right,   // r score: 0.25
+    //         ssn::team::left };  // l score: 0.5
+    //     const uint32_t cTestAreaCount = ARRAY_LEN( cTestAreas );
+    //     for( uint32_t areaIdx = 0; areaIdx < cTestAreaCount; areaIdx++ ) {
+    //         testEntity.change( cTestTeams[areaIdx] );
+    //         for( uint32_t cornerIdx = 0; cornerIdx < ssn::bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
+    //             vec2f32_t prevCenter = testEntity.mBounds.mCenter;
+    //             testEntity.mBounds.mCenter = cTestAreas[areaIdx][cornerIdx];
+    //             testEntity.mBBox.mPos += ( testEntity.mBounds.mCenter - prevCenter );
+    //             pState->bounds.claim( &testEntity );
+    //         }
+    //     }
+    // }
+
     std::memset( pInput, 0, sizeof(ssn::input_t) );
 
     return true;
@@ -96,6 +117,13 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
         if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) {
             // NOTE(JRC): The source for this algorithm was derived from here:
+            // http://geomalgorithms.com/a01-_area.html
+            const static auto csTriDeterminant = []
+                    ( const vec2f32_t& pP0, const vec2f32_t& pP1, const vec2f32_t& pP2 ) {
+                return ( (pP1.x - pP0.x) * (pP2.y - pP0.y) - (pP2.x - pP0.x) * (pP1.y - pP0.y) );
+            };
+
+            // NOTE(JRC): The source for this algorithm was derived from here:
             // http://geomalgorithms.com/a03-_inclusion.html
             const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
                 int32_t windCount = 0;
@@ -106,14 +134,14 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
                     // if the corner edge intersects the point x-axis ray upward...
                     if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
-                        // and the point is strictly left of the edge
-                        if( cornerStart.x > pPoint.x && cornerEnd.x > pPoint.x ) {
+                        // and the point is strictly left of the edge (s->e->p is ccw)
+                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) > 0.0f ) {
                             windCount++;
                         }
                     // if the corner edge intersects the point x-axis ray downward...
                     } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
-                        // and the point is strictly right of the edge
-                        if( cornerStart.x < pPoint.x && cornerEnd.x < pPoint.x ) {
+                        // and the point is strictly right of the edge (s->e->p is cw)
+                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) < 0.0f ) {
                             windCount--;
                         }
                     }
