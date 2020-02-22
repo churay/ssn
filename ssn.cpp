@@ -112,66 +112,64 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
         if( puck->hit(paddle) ) { bounds->claim( paddle ); }
     }
 
-    { // Game Scoring //
+    if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) { // Game Scoring //
         vec2i32_t scores = { 0, 0 };
 
-        if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) {
-            // NOTE(JRC): The source for this algorithm was derived from here:
-            // http://geomalgorithms.com/a01-_area.html
-            const static auto csTriDeterminant = []
-                    ( const vec2f32_t& pP0, const vec2f32_t& pP1, const vec2f32_t& pP2 ) {
-                return ( (pP1.x - pP0.x) * (pP2.y - pP0.y) - (pP2.x - pP0.x) * (pP1.y - pP0.y) );
-            };
+        // NOTE(JRC): The source for this algorithm was derived from here:
+        // http://geomalgorithms.com/a01-_area.html
+        const static auto csTriDeterminant = []
+                ( const vec2f32_t& pP0, const vec2f32_t& pP1, const vec2f32_t& pP2 ) {
+            return ( (pP1.x - pP0.x) * (pP2.y - pP0.y) - (pP2.x - pP0.x) * (pP1.y - pP0.y) );
+        };
 
-            // NOTE(JRC): The source for this algorithm was derived from here:
-            // http://geomalgorithms.com/a03-_inclusion.html
-            const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
-                int32_t windCount = 0;
+        // NOTE(JRC): The source for this algorithm was derived from here:
+        // http://geomalgorithms.com/a03-_inclusion.html
+        const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
+            int32_t windCount = 0;
 
-                for( uint32_t cornerIdx = 0; cornerIdx < bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
-                    const vec2f32_t& cornerStart = pArea[cornerIdx];
-                    const vec2f32_t& cornerEnd = pArea[(cornerIdx + 1) % bounds_t::AREA_CORNER_COUNT];
+            for( uint32_t cornerIdx = 0; cornerIdx < bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
+                const vec2f32_t& cornerStart = pArea[cornerIdx];
+                const vec2f32_t& cornerEnd = pArea[(cornerIdx + 1) % bounds_t::AREA_CORNER_COUNT];
 
-                    // if the corner edge intersects the point x-axis ray upward...
-                    if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
-                        // and the point is strictly left of the edge (s->e->p is ccw)
-                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) > 0.0f ) {
-                            windCount++;
-                        }
-                    // if the corner edge intersects the point x-axis ray downward...
-                    } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
-                        // and the point is strictly right of the edge (s->e->p is cw)
-                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) < 0.0f ) {
-                            windCount--;
-                        }
+                // if the corner edge intersects the point x-axis ray upward...
+                if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
+                    // and the point is strictly left of the edge (s->e->p is ccw)
+                    if( csTriDeterminant(cornerStart, cornerEnd, pPoint) > 0.0f ) {
+                        windCount++;
                     }
-                }
-
-                return windCount != 0;
-            };
-
-            const vec2u32_t& cPixelRes = pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER];
-            for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
-                for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
-                    vec2f32_t pixelPos(
-                        bounds->mBBox.xbounds().interp( (xPixelIdx + 0.5f) / cPixelRes.x ),
-                        bounds->mBBox.ybounds().interp( (yPixelIdx + 0.5f) / cPixelRes.y ) );
-
-                    for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
-                        vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * bounds_t::AREA_CORNER_COUNT];
-                        if( csPointInArea(pixelPos, areaPoss) ) {
-                            (*VECTOR_AT(scores, bounds->mAreaTeams[areaIdx]))++;
-                            break;
-                        }
+                // if the corner edge intersects the point x-axis ray downward...
+                } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
+                    // and the point is strictly right of the edge (s->e->p is cw)
+                    if( csTriDeterminant(cornerStart, cornerEnd, pPoint) < 0.0f ) {
+                        windCount--;
                     }
                 }
             }
 
-            const uint32_t cPixelTotal = cPixelRes.x * cPixelRes.y;
-            std::cout << "Scores:" << std::endl;
-            std::cout << "  Left: " << (*VECTOR_AT(scores, ssn::team::left)) / ( cPixelTotal + 0.0f ) << std::endl;
-            std::cout << "  Right: " << (*VECTOR_AT(scores, ssn::team::right)) / ( cPixelTotal + 0.0f ) << std::endl;
+            return windCount != 0;
+        };
+
+        const vec2u32_t& cPixelRes = pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER];
+        for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
+            for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
+                vec2f32_t pixelPos(
+                    bounds->mBBox.xbounds().interp( (xPixelIdx + 0.5f) / cPixelRes.x ),
+                    bounds->mBBox.ybounds().interp( (yPixelIdx + 0.5f) / cPixelRes.y ) );
+
+                for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
+                    vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * bounds_t::AREA_CORNER_COUNT];
+                    if( csPointInArea(pixelPos, areaPoss) ) {
+                        (*VECTOR_AT(scores, bounds->mAreaTeams[areaIdx]))++;
+                        break;
+                    }
+                }
+            }
         }
+
+        const uint32_t cPixelTotal = cPixelRes.x * cPixelRes.y;
+        std::cout << "Scores:" << std::endl;
+        std::cout << "  Left: " << (*VECTOR_AT(scores, ssn::team::left)) / ( cPixelTotal + 0.0f ) << std::endl;
+        std::cout << "  Right: " << (*VECTOR_AT(scores, ssn::team::right)) / ( cPixelTotal + 0.0f ) << std::endl;
     }
 
     return true;

@@ -120,8 +120,10 @@ class puck_t : public team_entity_t {
 
     public:
 
+    vec2i8_t mWrapCount;
     const entity_t* mContainer;
     llce::box_t mBBoxes[BBOX_COUNT];
+    vec2i8_t mWrapCounts[BBOX_COUNT];
 };
 
 }

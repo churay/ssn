@@ -112,55 +112,70 @@ void paddle_t::move( const int32_t pDX, const int32_t pDY ) {
 /// 'ssn::puck_t' Functions ///
 
 puck_t::puck_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer ) :
-        team_entity_t( pBounds, pTeam ), mContainer( pContainer ) {
+        team_entity_t( pBounds, pTeam ), mWrapCount( 0, 0 ), mContainer( pContainer ) {
     mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
+    mWrapCounts[puck_t::BBOX_BASE_ID] = mWrapCount;
 }
 
 
 void puck_t::update( const float64_t pDT ) {
+    const llce::box_t& oBBox = mContainer->mBBox;
+
+    const vec2i8_t isPrevWrap = {
+        !oBBox.xbounds().contains( mBBox.xbounds() ),
+        !oBBox.ybounds().contains( mBBox.ybounds() ) };
     entity_t::update( pDT );
+    const vec2i8_t isCurrWrap = {
+        !oBBox.xbounds().contains( mBBox.xbounds() ),
+        !oBBox.ybounds().contains( mBBox.ybounds() ) };
+
+    const vec2i8_t newWrapDir = {
+        ( !isPrevWrap.x && isCurrWrap.x ) ? ( (mBBox.mPos.x < oBBox.mPos.x) ? -1 : 1 ) : 0,
+        ( !isPrevWrap.y && isCurrWrap.y ) ? ( (mBBox.mPos.y < oBBox.mPos.y) ? -1 : 1 ) : 0 };
 
     { // Resolve Boundary Wrap //
-        const llce::box_t& oBBox = mContainer->mBBox;
         mBBox.mPos.x = oBBox.xbounds().wrap( mBBox.mPos.x );
         mBBox.mPos.y = oBBox.ybounds().wrap( mBBox.mPos.y );
         mBounds.mCenter = mBBox.center();
+        mWrapCount += newWrapDir;
     }
 
     { // Initialize Bounding Boxes //
         mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
+        mWrapCounts[puck_t::BBOX_BASE_ID] = mWrapCount;
         for( uint32_t bboxIdx = puck_t::BBOX_BASE_ID + 1; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
             mBBoxes[bboxIdx] = llce::box_t();
+            mWrapCounts[bboxIdx] = { 0, 0 };
         }
     }
 
     { // Update Bounding Boxes //
-        const llce::box_t& oBBox = mContainer->mBBox;
-        if( !oBBox.contains(mBBox) ) {
-            bool32_t isOutsideX = !oBBox.xbounds().contains(mBBox.xbounds());
-            if( isOutsideX ) {
+        if( isCurrWrap.x || isCurrWrap.y ) {
+            vec2i8_t& baseWrapCount = mWrapCounts[puck_t::BBOX_BASE_ID];
+
+            if( isCurrWrap.x ) {
                 mBBoxes[puck_t::BBOX_XWRAP_ID] = llce::box_t(
-                    mBBox.min().x - oBBox.ybounds().length(), // NOTE: see wrap code above
+                    mBBox.min().x - oBBox.xbounds().length(), // NOTE: see wrap code above
                     mBBoxes[puck_t::BBOX_BASE_ID].mPos.y,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
-            }
-
-            bool32_t isOutsideY = !oBBox.ybounds().contains(mBBox.ybounds());
-            if( isOutsideY ) {
+                mWrapCounts[puck_t::BBOX_XWRAP_ID] = ( mWrapCount.x > 0 ) ? mWrapCount : vec2i8_t( mWrapCount.x+1, mWrapCount.y );
+                mWrapCounts[puck_t::BBOX_BASE_ID] = ( mWrapCount.x < 0 ) ? mWrapCount : vec2i8_t( baseWrapCount.x-1, baseWrapCount.y );
+            } if( isCurrWrap.y ) {
                 mBBoxes[puck_t::BBOX_YWRAP_ID] = llce::box_t(
                     mBBoxes[puck_t::BBOX_BASE_ID].mPos.x,
                     mBBox.min().y - oBBox.ybounds().length(), // NOTE: see wrap code above
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
-            }
-
-            if( isOutsideX && isOutsideY ) {
+                mWrapCounts[puck_t::BBOX_YWRAP_ID] = ( mWrapCount.y > 0 ) ? mWrapCount : vec2i8_t( mWrapCount.x, mWrapCount.y+1 );
+                mWrapCounts[puck_t::BBOX_BASE_ID] = ( mWrapCount.y < 0 ) ? mWrapCount : vec2i8_t( baseWrapCount.x, baseWrapCount.y-1 );
+            } if( isCurrWrap.x && isCurrWrap.y ) {
                 mBBoxes[puck_t::BBOX_XYWRAP_ID] = llce::box_t(
                     mBBoxes[puck_t::BBOX_XWRAP_ID].mPos.x,
                     mBBoxes[puck_t::BBOX_YWRAP_ID].mPos.y,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.x,
                     mBBoxes[puck_t::BBOX_BASE_ID].mDims.y);
+                mWrapCounts[puck_t::BBOX_XYWRAP_ID] = vec2i8_t( mWrapCounts[puck_t::BBOX_XWRAP_ID].x, mWrapCounts[puck_t::BBOX_YWRAP_ID].y );
             }
         }
     }
@@ -195,6 +210,7 @@ void puck_t::render() const {
         csRenderCursor( this, mBBoxes[puck_t::BBOX_YWRAP_ID], puck_t::BBOX_XWRAP_ID );
     }
 
+    // TODO(JRC): Modify the color slightly based on the current wrap count.
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
         if( !puckBBox.empty() ) {
@@ -225,7 +241,10 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
                 mBBox.mPos += hitVec;
                 mVel = hitDir * hitMag;
 
-                team_entity_t::change( static_cast<ssn::team::team_e>(pSource->mTeam) );
+                if( mTeam != pSource->mTeam ) {
+                    mWrapCount = { 0, 0 };
+                    team_entity_t::change( static_cast<ssn::team::team_e>(pSource->mTeam) );
+                }
 
                 return true;
             }
