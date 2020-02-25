@@ -210,12 +210,16 @@ void puck_t::render() const {
         csRenderCursor( this, mBBoxes[puck_t::BBOX_YWRAP_ID], puck_t::BBOX_XWRAP_ID );
     }
 
-    // TODO(JRC): Modify the color slightly based on the current wrap count.
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
+        const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
         if( !puckBBox.empty() ) {
-            llce::gfx::render_context_t entityRC( puckBBox, mColor );
-            llce::gfx::circle::render( csRenderCircle, mColor );
+            color4u8_t puckColor = *mColor; {
+                const uint32_t puckWraps = puck_t::wraps( puckWrapCount );
+                puckColor.w = std::min( (puckWraps + 1.0f) / 3.0f, 1.0f ) * 255;
+            }
+            llce::gfx::render_context_t entityRC( puckBBox, &puckColor );
+            llce::gfx::circle::render( csRenderCircle, &puckColor );
         }
     }
 }
@@ -223,8 +227,15 @@ void puck_t::render() const {
 
 bool32_t puck_t::hit( const team_entity_t* pSource ) {
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
-        llce::box_t& puckBBox = mBBoxes[bboxIdx];
-        if( !puckBBox.empty() ) {
+        const llce::box_t& puckBBox = mBBoxes[bboxIdx];
+        const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
+
+        const uint32_t puckWraps = puck_t::wraps( puckWrapCount );
+        const bool32_t isPuckTangible =  ( puckWraps >= 2 ) ||
+            ( puckWraps >= 1 && mTeam != pSource->mTeam ) ||
+            ( puckWraps >= 0 && mTeam == ssn::team::neutral );
+
+        if( !puckBBox.empty() && isPuckTangible ) {
             llce::circle_t puckBounds( puckBBox.center(), mBounds.mRadius );
             if( pSource->mBounds.overlaps(puckBounds) ) {
                 puckBounds.exbed( pSource->mBounds );
@@ -241,10 +252,8 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
                 mBBox.mPos += hitVec;
                 mVel = hitDir * hitMag;
 
-                if( mTeam != pSource->mTeam ) {
-                    mWrapCount = { 0, 0 };
-                    team_entity_t::change( static_cast<ssn::team::team_e>(pSource->mTeam) );
-                }
+                mWrapCount = { 0, 0 };
+                team_entity_t::change( static_cast<ssn::team::team_e>(pSource->mTeam) );
 
                 return true;
             }
@@ -253,5 +262,10 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
 
     return false;
 }
+
+uint32_t puck_t::wraps( const vec2i8_t& pWrapCount ) {
+    return std::max( std::abs(pWrapCount.x), std::abs(pWrapCount.y) );
+}
+
 
 }
