@@ -4,6 +4,8 @@
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
 
+#include <glm/ext/matrix_transform.hpp>
+
 #include "box_t.h"
 #include "gfx.h"
 #include "ssn_entities.h"
@@ -112,7 +114,7 @@ void paddle_t::move( const int32_t pDX, const int32_t pDY ) {
 /// 'ssn::puck_t' Functions ///
 
 puck_t::puck_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer ) :
-        team_entity_t( pBounds, pTeam ), mWrapCount( 0, 0 ), mContainer( pContainer ) {
+        team_entity_t( pBounds, pTeam ), mWrapCount( 2, 2 ), mContainer( pContainer ) {
     mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
     mWrapCounts[puck_t::BBOX_BASE_ID] = mWrapCount;
 }
@@ -183,7 +185,6 @@ void puck_t::update( const float64_t pDT ) {
 
 
 void puck_t::render() const {
-    const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
     const static auto csRenderCursor = []
             ( const ssn::puck_t* pPuck, const llce::box_t& pFocusBox, const uint32_t pDim ) {
         const llce::box_t& boundsBox = pPuck->mContainer->mBBox; 
@@ -214,12 +215,48 @@ void puck_t::render() const {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
         const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
         if( !puckBBox.empty() ) {
-            color4u8_t puckColor = *mColor; {
-                const uint32_t puckWraps = puck_t::wraps( puckWrapCount );
-                puckColor.w = std::min( (puckWraps + 1.0f) / 3.0f, 1.0f ) * 255;
+            const vec2i8_t cPuckTangible = tangible( puckWrapCount );
+            const uint32_t cSegmentCount = 20;
+            const color4u8_t cOutlineColor = { 0x00, 0x00, 0x00, 0xFF };
+            const float32_t cInnerRadius = 0.875f;
+
+            // TODO(JRC): Abstract out the logic below that's held in common with
+            // the 'gfx::circle::render' function.
+            {
+                llce::gfx::render_context_t entityRC( puckBBox, mColor );
+
+                glPushMatrix();
+                glm::mat4 matCircleSpace( 1.0f );
+                matCircleSpace *= glm::translate( glm::mat4(1.0f), vec3f32_t(0.5f, 0.5f, 0.0f) );
+                matCircleSpace *= glm::scale( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f) );
+                glMultMatrixf( &matCircleSpace[0][0] );
+
+                glPushAttrib( GL_CURRENT_BIT );
+                glColor4ubv( (uint8_t*)&cOutlineColor );
+                glBegin( GL_POLYGON );
+                for( uint32_t segmentIdx = 0; segmentIdx < cSegmentCount; segmentIdx++ ) {
+                    float32_t segmentRadians = 2.0f * M_PI * ( segmentIdx / (cSegmentCount + 0.0f) );
+                    glVertex2f( std::cos(segmentRadians), std::sin(segmentRadians) );
+                }
+                glEnd();
+
+                for( int8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+                    const color4u8_t* teamColor = *VECTOR_AT( cPuckTangible, team ) ?
+                        &ssn::color::TEAM[team] : &ssn::color::TEAM[ssn::team::neutral];
+                    const float32_t teamOffset = ( (team == ssn::team::left) ? 1.0f : -1.0f ) * ( M_PI / 2.0f );
+
+                    glColor4ubv( (uint8_t*)teamColor );
+                    glBegin( GL_POLYGON );
+                    for( uint32_t segmentIdx = 0; segmentIdx <= cSegmentCount; segmentIdx++ ) {
+                        float32_t segmentRadians = M_PI * ( segmentIdx / (cSegmentCount + 0.0f) ) + teamOffset;
+                        glVertex2f( cInnerRadius * std::cos(segmentRadians), cInnerRadius * std::sin(segmentRadians) );
+                    }
+                    glEnd();
+                }
+
+                glPopAttrib();
+                glPopMatrix();
             }
-            llce::gfx::render_context_t entityRC( puckBBox, &puckColor );
-            llce::gfx::circle::render( csRenderCircle, &puckColor );
         }
     }
 }
@@ -230,12 +267,8 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
         const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
 
-        const uint32_t puckWraps = puck_t::wraps( puckWrapCount );
-        const bool32_t isPuckTangible =  ( puckWraps >= 2 ) ||
-            ( puckWraps >= 1 && mTeam != pSource->mTeam ) ||
-            ( puckWraps >= 0 && mTeam == ssn::team::neutral );
-
-        if( !puckBBox.empty() && isPuckTangible ) {
+        const vec2i8_t puckTangible = tangible( puckWrapCount );
+        if( !puckBBox.empty() && *VECTOR_AT(puckTangible, pSource->mTeam) ) {
             llce::circle_t puckBounds( puckBBox.center(), mBounds.mRadius );
             if( pSource->mBounds.overlaps(puckBounds) ) {
                 puckBounds.exbed( pSource->mBounds );
@@ -263,8 +296,11 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
     return false;
 }
 
-uint32_t puck_t::wraps( const vec2i8_t& pWrapCount ) {
-    return std::max( std::abs(pWrapCount.x), std::abs(pWrapCount.y) );
+vec2i8_t puck_t::tangible( const vec2i8_t& pWrapCount ) const {
+    const uint32_t cWrapNumber = std::max( std::abs(pWrapCount.x), std::abs(pWrapCount.y) );
+    return vec2i8_t(
+        (bool8_t)(cWrapNumber >= (1 + (int8_t)(mTeam == ssn::team::left))),
+        (bool8_t)(cWrapNumber >= (1 + (int8_t)(mTeam == ssn::team::right))) );
 }
 
 

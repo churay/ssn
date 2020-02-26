@@ -116,7 +116,7 @@ class puck_t : public team_entity_t {
 
     bool32_t hit( const team_entity_t* pSource );
 
-    static uint32_t wraps( const vec2i8_t& pWrapCount );
+    vec2i8_t tangible( const vec2i8_t& pWrapCount ) const;
 
     /// Class Fields ///
 
