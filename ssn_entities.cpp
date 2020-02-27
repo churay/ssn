@@ -105,6 +105,17 @@ void paddle_t::update( const float64_t pDT ) {
 }
 
 
+void paddle_t::render() const {
+    const static llce::circle_t csPaddleBounds( 0.5f, 0.5f, 1.0f );
+    const static llce::circle_t csColorBounds( csPaddleBounds.mCenter, 0.90f * csPaddleBounds.mRadius );
+    const static color4u8_t* csPaddleOutlineColor = &ssn::color::INTERFACE;
+
+    llce::gfx::render_context_t entityRC( mBBox, mColor );
+    llce::gfx::circle::render( csPaddleBounds, csPaddleOutlineColor );
+    llce::gfx::circle::render( csColorBounds, mColor );
+}
+
+
 void paddle_t::move( const int32_t pDX, const int32_t pDY ) {
     mDI.x = static_cast<float32_t>( glm::clamp(pDX, -1, 1) );
     mDI.y = static_cast<float32_t>( glm::clamp(pDY, -1, 1) );
@@ -211,51 +222,23 @@ void puck_t::render() const {
         csRenderCursor( this, mBBoxes[puck_t::BBOX_YWRAP_ID], puck_t::BBOX_XWRAP_ID );
     }
 
+    const static llce::circle_t csPuckBounds( 0.5f, 0.5f, 1.0f );
+    const static llce::circle_t csSideBounds( csPuckBounds.mCenter, 0.875f * csPuckBounds.mRadius );
+    const static color4u8_t* csPuckOutlineColor = &ssn::color::INTERFACE;
+
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
         const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
         if( !puckBBox.empty() ) {
-            const vec2i8_t cPuckTangible = tangible( puckWrapCount );
-            const uint32_t cSegmentCount = 20;
-            const color4u8_t cOutlineColor = { 0x00, 0x00, 0x00, 0xFF };
-            const float32_t cInnerRadius = 0.875f;
+            const vec2i8_t puckTangible = tangible( puckWrapCount );
 
-            // TODO(JRC): Abstract out the logic below that's held in common with
-            // the 'gfx::circle::render' function.
-            {
-                llce::gfx::render_context_t entityRC( puckBBox, mColor );
-
-                glPushMatrix();
-                glm::mat4 matCircleSpace( 1.0f );
-                matCircleSpace *= glm::translate( glm::mat4(1.0f), vec3f32_t(0.5f, 0.5f, 0.0f) );
-                matCircleSpace *= glm::scale( glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 1.0f) );
-                glMultMatrixf( &matCircleSpace[0][0] );
-
-                glPushAttrib( GL_CURRENT_BIT );
-                glColor4ubv( (uint8_t*)&cOutlineColor );
-                glBegin( GL_POLYGON );
-                for( uint32_t segmentIdx = 0; segmentIdx < cSegmentCount; segmentIdx++ ) {
-                    float32_t segmentRadians = 2.0f * M_PI * ( segmentIdx / (cSegmentCount + 0.0f) );
-                    glVertex2f( std::cos(segmentRadians), std::sin(segmentRadians) );
-                }
-                glEnd();
-
-                for( int8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
-                    const color4u8_t* teamColor = *VECTOR_AT( cPuckTangible, team ) ?
-                        &ssn::color::TEAM[team] : &ssn::color::TEAM[ssn::team::neutral];
-                    const float32_t teamOffset = ( (team == ssn::team::left) ? 1.0f : -1.0f ) * ( M_PI / 2.0f );
-
-                    glColor4ubv( (uint8_t*)teamColor );
-                    glBegin( GL_POLYGON );
-                    for( uint32_t segmentIdx = 0; segmentIdx <= cSegmentCount; segmentIdx++ ) {
-                        float32_t segmentRadians = M_PI * ( segmentIdx / (cSegmentCount + 0.0f) ) + teamOffset;
-                        glVertex2f( cInnerRadius * std::cos(segmentRadians), cInnerRadius * std::sin(segmentRadians) );
-                    }
-                    glEnd();
-                }
-
-                glPopAttrib();
-                glPopMatrix();
+            llce::gfx::render_context_t entityRC( puckBBox, mColor );
+            llce::gfx::circle::render( csPuckBounds, csPuckOutlineColor );
+            for( int8_t side = ssn::team::left; side <= ssn::team::right; side++ ) {
+                const float32_t sideAngle = ( M_PI / 2.0f ) + ( side + 0.0f ) * M_PI;
+                const color4u8_t* sideColor = *VECTOR_AT( puckTangible, side ) ?
+                    &ssn::color::TEAM[side] : &ssn::color::TEAM[ssn::team::neutral];
+                llce::gfx::circle::render( csSideBounds, sideAngle, sideAngle + M_PI, sideColor );
             }
         }
     }

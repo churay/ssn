@@ -80,6 +80,7 @@ class paddle_t : public team_entity_t {
     /// Class Functions ///
 
     void update( const float64_t pDT );
+    void render() const;
 
     void move( const int32_t pDX, const int32_t pDY );
 
