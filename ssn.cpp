@@ -42,17 +42,19 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
 
 
 extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
+    const float32_t cPaddleBaseRadius = 5.0e-2f;
+
     const vec2f32_t boundsBasePos( 0.0f, 0.0f );
     const vec2f32_t boundsDims( 1.0f, 1.0f );
     pState->bounds = ssn::bounds_t( llce::box_t(boundsBasePos, boundsDims) );
 
     const vec2f32_t puckCenterPos( 0.25f, 0.5f );
-    const float32_t puckRadius( 6.0e-2f / 2.0f );
+    const float32_t puckRadius( cPaddleBaseRadius * 0.6f );
     pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius),
         ssn::team::neutral, &pState->bounds );
 
     const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
-    const float32_t paddleRadius( 6.0e-2f );
+    const float32_t paddleRadius( cPaddleBaseRadius );
     pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius),
         ssn::team::left, &pState->bounds );
 
@@ -85,6 +87,7 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
 extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ssn::output_t* pOutput, const float64_t pDT ) {
     vec2i32_t di = { 0, 0 };
+    bool32_t de = false;
 
     { // Input Processing //
         if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_W) ) {
@@ -96,6 +99,10 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
         } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_D) ) {
             di.x += 1;
         }
+
+        if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_E) ) {
+            de = true;
+        }
     }
 
     ssn::bounds_t* const bounds = &pState->bounds;
@@ -104,6 +111,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
     { // Game State Update //
         paddle->move( di.x, di.y );
+        if( de ) { paddle->rush(); }
 
         bounds->update( pDT );
         puck->update( pDT );

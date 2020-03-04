@@ -70,8 +70,12 @@ class paddle_t : public team_entity_t {
 
     /// Class Attributes ///
 
-    constexpr static float32_t MOVE_ACCEL = 4.0e-1f; // units: world / second**2
-    constexpr static float32_t MAX_VEL = 7.5e-1f;    // units: world / second
+    constexpr static float32_t MOVE_ACCEL = 1.2e0f;     // units: world / second**2
+    constexpr static float32_t MOVE_MAX_VEL = 1.0e0f;   // units: world / second
+
+    constexpr static float32_t RUSH_VEL = 3.0e0f;       // units: world / second
+    constexpr static float32_t RUSH_DURATION = 5.0e-2f; // units: second
+    constexpr static float32_t RUSH_COOLDOWN = 5.0e-1f; // units: second
 
     /// Constructors ///
 
@@ -83,6 +87,7 @@ class paddle_t : public team_entity_t {
     void render() const;
 
     void move( const int32_t pDX, const int32_t pDY );
+    void rush();
 
     /// Class Fields ///
 
@@ -90,6 +95,10 @@ class paddle_t : public team_entity_t {
 
     const entity_t* mContainer;
     vec2f32_t mDI;
+    bool32_t mAmRushing;
+    vec2f32_t mRushDir;
+    float32_t mRushDuration;
+    float32_t mRushCooldown;
 };
 
 
@@ -123,8 +132,8 @@ class puck_t : public team_entity_t {
 
     public:
 
-    vec2i8_t mWrapCount;
     const entity_t* mContainer;
+    vec2i8_t mWrapCount;
     llce::box_t mBBoxes[BBOX_COUNT];
     vec2i8_t mWrapCounts[BBOX_COUNT];
 };

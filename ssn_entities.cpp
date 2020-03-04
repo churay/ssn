@@ -8,6 +8,7 @@
 
 #include "box_t.h"
 #include "gfx.h"
+#include "util.hpp"
 #include "ssn_entities.h"
 
 namespace ssn {
@@ -83,24 +84,46 @@ void bounds_t::claim( const team_entity_t* pSource ) {
 /// 'ssn::paddle_t' Functions ///
 
 paddle_t::paddle_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer ) :
-        team_entity_t( pBounds, pTeam ), mContainer( pContainer ), mDI( 0, 0 ) {
+        team_entity_t( pBounds, pTeam ), mContainer( pContainer ), mDI( 0, 0 ),
+        mAmRushing( false ), mRushDuration( 0.0f ), mRushCooldown( 0.0f ) {
     
 }
 
 
 void paddle_t::update( const float64_t pDT ) {
+    { // Calculate Velocity //
+        mRushDuration = glm::clamp( mRushDuration + pDT, 0.0, 2.0 * paddle_t::RUSH_DURATION );
+        mRushCooldown = glm::clamp( mRushCooldown - pDT, 0.0, 0.0 + paddle_t::RUSH_COOLDOWN );
+
+        mAmRushing = mAmRushing && mRushDuration < paddle_t::RUSH_DURATION;
+        if( mAmRushing ) {
+            mVel = paddle_t::RUSH_VEL * mRushDir;
+            mAccel = vec2f32_t( 0.0f, 0.0f );
+        }
+    }
+
     entity_t::update( pDT );
 
-    const llce::box_t& oBBox = mContainer->mBBox;
-    if( !oBBox.contains(mBBox) ) {
-        vec2f32_t containVec(
-            oBBox.xbounds().contains(mBBox.xbounds()) + 0.0f,
-            oBBox.ybounds().contains(mBBox.ybounds()) + 0.0f );
-        mVel *= containVec;
-        mAccel *= containVec;
+    if( !mAmRushing ) { //  //
+        const float32_t cVelMag = glm::length( mVel );
+        if( cVelMag > paddle_t::MOVE_MAX_VEL ) {
+            mVel *= paddle_t::MOVE_MAX_VEL / cVelMag;
+        }
+    }
 
-        mBBox.embed( oBBox );
-        mBounds.mCenter = mBBox.center();
+
+    { // Resolve Container Intersections //
+        const llce::box_t& oBBox = mContainer->mBBox;
+        if( !oBBox.contains(mBBox) ) {
+            vec2f32_t containVec(
+                oBBox.xbounds().contains(mBBox.xbounds()) + 0.0f,
+                oBBox.ybounds().contains(mBBox.ybounds()) + 0.0f );
+            mVel *= containVec;
+            mAccel *= containVec;
+
+            mBBox.embed( oBBox );
+            mBounds.mCenter = mBBox.center();
+        }
     }
 }
 
@@ -119,13 +142,23 @@ void paddle_t::render() const {
 void paddle_t::move( const int32_t pDX, const int32_t pDY ) {
     mDI.x = static_cast<float32_t>( glm::clamp(pDX, -1, 1) );
     mDI.y = static_cast<float32_t>( glm::clamp(pDY, -1, 1) );
-    mVel = ( pDX || pDY ) ? paddle_t::MAX_VEL * glm::normalize( mDI ) : vec2f32_t( 0.0f, 0.0f );
+    mAccel = paddle_t::MOVE_ACCEL * llce::util::normalize( mDI );
+}
+
+
+void paddle_t::rush() {
+    if( !mAmRushing && mRushCooldown <= 0.0f ) {
+        mAmRushing = true;
+        mRushDuration = 0.0f;
+        mRushDir = llce::util::normalize(
+            ( glm::length(mVel) > glm::epsilon<float32_t>() ) ? mVel : mAccel );
+    }
 }
 
 /// 'ssn::puck_t' Functions ///
 
 puck_t::puck_t( const llce::circle_t& pBounds, const team::team_e& pTeam, const entity_t* pContainer ) :
-        team_entity_t( pBounds, pTeam ), mWrapCount( 2, 2 ), mContainer( pContainer ) {
+        team_entity_t( pBounds, pTeam ), mContainer( pContainer ), mWrapCount( 2, 2 )  {
     mBBoxes[puck_t::BBOX_BASE_ID] = mBBox;
     mWrapCounts[puck_t::BBOX_BASE_ID] = mWrapCount;
 }
@@ -257,7 +290,7 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
                 puckBounds.exbed( pSource->mBounds );
 
                 vec2f32_t hitVec = puckBounds.mCenter - puckBBox.center();
-                vec2f32_t hitDir = glm::normalize( hitVec );
+                vec2f32_t hitDir = llce::util::normalize( hitVec );
                 // FIXME(JRC): The unnecessary multiplication here acts as
                 // a workaround to weird interactions between gcc compilation
                 // and raw 'constexpr static' variables.
