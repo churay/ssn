@@ -91,26 +91,28 @@ paddle_t::paddle_t( const llce::circle_t& pBounds, const team::team_e& pTeam, co
 
 
 void paddle_t::update( const float64_t pDT ) {
-    { // Calculate Velocity //
-        mRushDuration = glm::clamp( mRushDuration + pDT, 0.0, 2.0 * paddle_t::RUSH_DURATION );
-        mRushCooldown = glm::clamp( mRushCooldown - pDT, 0.0, 0.0 + paddle_t::RUSH_COOLDOWN );
+    { // Update Rush State Information //
+        mRushDuration = std::min( mRushDuration + (mAmRushing ? pDT : 0.0), 0.0 + paddle_t::RUSH_DURATION );
+        mAmRushing &= mRushDuration < paddle_t::RUSH_DURATION;
+        mRushCooldown = std::max( mRushCooldown - (mAmRushing ? 0.0 : pDT), 0.0 );
 
-        mAmRushing = mAmRushing && mRushDuration < paddle_t::RUSH_DURATION;
-        if( mAmRushing ) {
-            mVel = paddle_t::RUSH_VEL * mRushDir;
-            mAccel = vec2f32_t( 0.0f, 0.0f );
-        }
+        mVel = mAmRushing ? paddle_t::RUSH_VEL * mRushDir : mVel;
+        mAccel = mAmRushing ? vec2f32_t( 0.0f, 0.0f ) : mAccel;
     }
 
-    entity_t::update( pDT );
-
-    if( !mAmRushing ) { //  //
+    // FIXME(JRC): It would be best if this function could directly invoke
+    // 'entity_t::update' to remove any guesswork (this isn't currently possible
+    // since the velocity needs to be intercepted and capped before it's used
+    // for position update calculations).
+    { // Update Positions/Velocities //
+        mVel += static_cast<float32_t>( pDT ) * mAccel;
         const float32_t cVelMag = glm::length( mVel );
-        if( cVelMag > paddle_t::MOVE_MAX_VEL ) {
+        if( !mAmRushing && cVelMag > paddle_t::MOVE_MAX_VEL ) {
             mVel *= paddle_t::MOVE_MAX_VEL / cVelMag;
         }
+        mBounds.mCenter += static_cast<float32_t>( pDT ) * mVel;
+        mBBox.mPos += static_cast<float32_t>( pDT ) * mVel;
     }
-
 
     { // Resolve Container Intersections //
         const llce::box_t& oBBox = mContainer->mBBox;
@@ -150,6 +152,7 @@ void paddle_t::rush() {
     if( !mAmRushing && mRushCooldown <= 0.0f ) {
         mAmRushing = true;
         mRushDuration = 0.0f;
+        mRushCooldown = paddle_t::RUSH_COOLDOWN;
         mRushDir = llce::util::normalize(
             ( glm::length(mVel) > glm::epsilon<float32_t>() ) ? mVel : mAccel );
     }
