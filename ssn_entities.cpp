@@ -135,9 +135,12 @@ void paddle_t::render() const {
     const static llce::circle_t csColorBounds( csPaddleBounds.mCenter, 0.90f * csPaddleBounds.mRadius );
     const static color4u8_t* csPaddleOutlineColor = &ssn::color::INTERFACE;
 
+    const float32_t cCooldownPercent = ( paddle_t::RUSH_COOLDOWN - mRushCooldown ) / paddle_t::RUSH_COOLDOWN;
+
     llce::gfx::render_context_t entityRC( mBBox, mColor );
     llce::gfx::circle::render( csPaddleBounds, csPaddleOutlineColor );
-    llce::gfx::circle::render( csColorBounds, mColor );
+    llce::gfx::circle::render( csColorBounds, &ssn::color::TEAM[ssn::team::neutral] );
+    llce::gfx::circle::render( csColorBounds, M_PI / 2.0f, M_PI / 2.0f + 2.0f * M_PI * cCooldownPercent, mColor );
 }
 
 
