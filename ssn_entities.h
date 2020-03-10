@@ -110,8 +110,9 @@ class puck_t : public team_entity_t {
     constexpr static uint32_t BBOX_COUNT = 4;
     constexpr static uint32_t BBOX_BASE_ID = 0, BBOX_XWRAP_ID = 1, BBOX_YWRAP_ID = 2, BBOX_XYWRAP_ID = 3;
 
-    constexpr static float32_t MAX_VEL = 1.0e0f;        // units: world / second
-    constexpr static float32_t MIN_VEL = 1.0e-2f;       // units: world / second
+    constexpr static float32_t MAX_VEL = 5.0e0f;        // units: world / second
+    constexpr static float32_t MIN_VEL = 5.0e-1f;       // units: world / second
+    constexpr static float32_t VEL_MULTIPLIER = 1.1f;   // units: new velocity / old velocity
 
     constexpr static float32_t CURSOR_RATIO = 5.0e-1f;  // units: cursor radius / puck radius
 

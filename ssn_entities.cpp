@@ -301,7 +301,8 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
                 // a workaround to weird interactions between gcc compilation
                 // and raw 'constexpr static' variables.
                 // See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=50785
-                float32_t hitMag = std::max( (1.0f*puck_t::MIN_VEL), glm::length(pSource->mVel) );
+                float32_t hitMag = glm::clamp( puck_t::VEL_MULTIPLIER * glm::length(mVel),
+                    (1.0f * puck_t::MIN_VEL), (1.0f * puck_t::MAX_VEL) );
 
                 mBounds.mCenter += hitVec;
                 mBBox.mPos += hitVec;
