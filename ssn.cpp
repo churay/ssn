@@ -42,6 +42,10 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
 
 
 extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
+    pState->dt = 0.0;
+    pState->tt = 0.0;
+    pState->ht = 0.0;
+
     const float32_t cPaddleBaseRadius = 5.0e-2f;
 
     const vec2f32_t boundsBasePos( 0.0f, 0.0f );
@@ -110,14 +114,24 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     ssn::paddle_t* const paddle = &pState->paddle;
 
     { // Game State Update //
-        paddle->move( di.x, di.y );
-        if( de ) { paddle->rush(); }
+        pState->dt = pDT;
+        pState->tt += pDT;
 
-        bounds->update( pDT );
-        puck->update( pDT );
-        paddle->update( pDT );
+        if( pState->ht > 0.0 ) {
+            pState->ht = ( pState->ht < ssn::MAX_HIT_TIME ) ? pState->ht + pDT : 0.0;
+        } else {
+            paddle->move( di.x, di.y );
+            if( de ) { paddle->rush(); }
 
-        if( puck->hit(paddle) ) { bounds->claim( paddle ); }
+            bounds->update( pDT );
+            puck->update( pDT );
+            paddle->update( pDT );
+
+            if( puck->hit(paddle) ) {
+                bounds->claim( paddle );
+                pState->ht += pDT;
+            }
+        }
     }
 
     if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) { // Game Scoring //

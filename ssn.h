@@ -13,7 +13,14 @@ namespace ssn {
 
 /// State Types/Variables ///
 
+constexpr static float32_t MAX_HIT_TIME = 0.3f;
+
 struct state_t {
+    // Global State //
+    float64_t dt; // frame time
+    float64_t tt; // total time
+    float64_t ht; // hit time
+
     // Game State //
     bounds_t bounds;
     puck_t puck;
