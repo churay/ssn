@@ -3,7 +3,6 @@
 #include <SDL2/SDL_opengl.h>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
-
 #include <glm/ext/matrix_transform.hpp>
 
 #include "box_t.h"

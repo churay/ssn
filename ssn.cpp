@@ -62,6 +62,8 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius),
         ssn::team::left, &pState->bounds );
 
+    pState->particulator = ssn::particulator_t();
+
     // { // Testing Score Calculations //
     //     ssn::team_entity_t testEntity( llce::circle_t(0.0f, 0.0f, 0.0f), ssn::team::right );
 
@@ -112,6 +114,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     ssn::bounds_t* const bounds = &pState->bounds;
     ssn::puck_t* const puck = &pState->puck;
     ssn::paddle_t* const paddle = &pState->paddle;
+    ssn::particulator_t* const particulator = &pState->particulator;
 
     { // Game State Update //
         pState->dt = pDT;
@@ -129,9 +132,13 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
             if( puck->hit(paddle) ) {
                 bounds->claim( paddle );
+                // particulator->generate();
                 pState->ht += pDT;
             }
+
         }
+
+        // particulator->update( pDT );
     }
 
     if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) { // Game Scoring //
@@ -211,10 +218,12 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
     const ssn::bounds_t* const bounds = &pState->bounds;
     const ssn::puck_t* const puck = &pState->puck;
     const ssn::paddle_t* const paddle = &pState->paddle;
+    const ssn::particulator_t* const particulator = &pState->particulator;
 
     { // Game State Render //
         bounds->render();
         puck->render();
+        particulator->render();
         paddle->render();
     }
 

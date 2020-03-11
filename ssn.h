@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 
 #include "ssn_entities.h"
+#include "ssn_particles.h"
 #include "ssn_consts.h"
 
 #include "input.h"
@@ -25,6 +26,8 @@ struct state_t {
     bounds_t bounds;
     puck_t puck;
     paddle_t paddle;
+
+    particulator_t particulator;
 };
 
 /// Input Types/Variables ///
