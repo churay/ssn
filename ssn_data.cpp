@@ -2,6 +2,8 @@
 
 namespace ssn {
 
+const uint64_t RNG_SEED = 12345678;
+
 namespace color {
 
 const color4u8_t BACKGROUND = { 0x00, 0x2b, 0x36, 0xff };

@@ -5,6 +5,8 @@
 
 namespace ssn {
 
+const extern uint64_t RNG_SEED;
+
 namespace color {
 
 const extern color4u8_t BACKGROUND;

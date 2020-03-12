@@ -46,6 +46,8 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->tt = 0.0;
     pState->ht = 0.0;
 
+    pState->rng = llce::rng_t( ssn::RNG_SEED );
+
     const float32_t cPaddleBaseRadius = 5.0e-2f;
 
     const vec2f32_t boundsBasePos( 0.0f, 0.0f );
@@ -62,7 +64,7 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius),
         ssn::team::left, &pState->bounds );
 
-    pState->particulator = ssn::particulator_t();
+    pState->particulator = ssn::particulator_t( &pState->rng );
 
     // { // Testing Score Calculations //
     //     ssn::team_entity_t testEntity( llce::circle_t(0.0f, 0.0f, 0.0f), ssn::team::right );

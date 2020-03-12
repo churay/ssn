@@ -1,10 +1,11 @@
 #ifndef SSN_PARTICLES_T_H
 #define SSN_PARTICLES_T_H
 
+#include <glm/common.hpp>
+
 #include "box_t.h"
 #include "circle_t.h"
-
-#include <glm/common.hpp>
+#include "rng_t.h"
 
 #include "ssn_data.h"
 #include "consts.h"
@@ -47,7 +48,7 @@ class particulator_t {
 
     /// Constructors ///
 
-    particulator_t();
+    particulator_t( llce::rng_t* pRNG );
 
     /// Class Functions ///
 
@@ -67,6 +68,8 @@ class particulator_t {
     /// Class Fields ///
 
     public:
+
+    llce::rng_t* mRNG;
 
     particle_t mParticles[MAX_PARTICLE_COUNT];
     uint32_t mSize;

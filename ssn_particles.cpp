@@ -1,7 +1,10 @@
 #include <SDL2/SDL_opengl.h>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtx/vector_angle.hpp>
 #include <glm/ext/matrix_transform.hpp>
+
+#include "interval_t.h"
 
 #include "ssn_particles.h"
 
@@ -40,8 +43,8 @@ bool32_t particle_t::valid() const {
 
 /// 'ssn::particulator_t' Functions ///
 
-particulator_t::particulator_t() :
-        mSize( 0 ) {
+particulator_t::particulator_t( llce::rng_t* const pRNG ) :
+        mRNG( pRNG ), mSize( 0 ) {
     
 }
 
@@ -62,21 +65,33 @@ void particulator_t::render() const {
 }
 
 
-void particulator_t::generate( const vec2f32_t& pBasePos, const vec2f32_t& pDir ) {
-    // const uint32_t cCount = ;
+void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir ) {
+    const static uint32_t csAverageCount = particulator_t::MAX_PARTICLE_COUNT / 8;
+    const static uint32_t csMaxDeviation = 2;
 
-    // const uint32_t cAvailCount = std::min( pCount, particulartor_t::MAX_PARTICLE_COUNT - mSize );
-    // LLCE_CHECK_WARNING( pCount == cAvailCount,
-    //     "Couldn't generate an additional " << pCount << " particles due " <<
-    //     "to insufficient unavailable particles; generated available amount " <<
-    //     cAvailCount << " instead." );
+    const uint32_t cNewCount = csAverageCount;
+    const uint32_t cAvailCount = std::min( cNewCount, particulator_t::MAX_PARTICLE_COUNT - mSize );
+    LLCE_CHECK_WARNING( cNewCount != cAvailCount,
+        "Couldn't generate all particles due to insufficient space; " <<
+        "using all " << cAvailCount << " available particles." );
 
-    // for( uint32_t partIdx = 0; partIdx < cAvailCount; partIdx++ ) {
-    //     particle_t& particle = mParticles[mSize + partIdx];
-    //     // particle.mPos = ;
-    //     // particle.mVel = ;
-    //     // particle.mPos = ;
-    // }
+    const static float32_t csThetaRange = M_PI / 4.0f;
+    const static float32_t csMagRange = 1.0e-1f;
+
+    const llce::interval_t cThetaInt(
+        glm::orientedAngle(vec2f32_t(1.0f, 0.0f), pDir), csThetaRange,
+        llce::interval_t::anchor_e::avg );
+    const llce::interval_t cMagInt(
+        1.0f, csMagRange,
+        llce::interval_t::anchor_e::avg );
+
+    for( uint32_t partIdx = 0; partIdx < cAvailCount; partIdx++ ) {
+        particle_t& particle = mParticles[mSize + partIdx];
+        float32_t partTheta = cThetaInt.interp( static_cast<float32_t>(mRNG->nextf()) );
+        // particle.mPos = ;
+        // particle.mVel = ;
+        // particle.mPos = ;
+    }
 }
 
 }

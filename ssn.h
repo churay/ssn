@@ -22,6 +22,8 @@ struct state_t {
     float64_t tt; // total time
     float64_t ht; // hit time
 
+    llce::rng_t rng; // random number generator
+
     // Game State //
     bounds_t bounds;
     puck_t puck;
