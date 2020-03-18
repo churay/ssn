@@ -2,9 +2,11 @@
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
 #include "interval_t.h"
+#include "ssn_consts.h"
 
 #include "ssn_particles.h"
 
@@ -18,22 +20,44 @@ particle_t::particle_t() :
 }
 
 
-particle_t::particle_t( const vec2f32_t& pPos, const color4u8_t* pColor, const float32_t pLifetime ) :
-        mPos( pPos ), mVel( 0.0f, 0.0f ), mAccel( 0.0f, 0.0f ), mColor( pColor ), mLifetime( pLifetime ) {
+particle_t::particle_t( const vec2f32_t& pPos, const vec2f32_t& pVel, const color4u8_t* pColor, const float32_t pLifetime ) :
+        mPos( pPos ), mVel( pVel ), mAccel( 0.0f, 0.0f ), mColor( pColor ), mLifetime( pLifetime ) {
     
 }
 
 
 void particle_t::update( const float64_t pDT ) {
+    // mAccel += 0.0f;
     mVel += static_cast<float32_t>( pDT ) * mAccel;
     mPos += static_cast<float32_t>( pDT ) * mVel;
-    mLifetime = std::max( 0.0f, mLifetime - static_cast<float32_t>(pDT) );
+    mLifetime = glm::max( 0.0f, mLifetime - static_cast<float32_t>(pDT) );
 }
 
 
 void particle_t::render() const {
-    // TODO(JRC): Use the direction and magnitude of the velocity to inform
-    // the particle rendering method.
+    const static float32_t csRHeightVelRatio = 1.0f / 8.0f;
+    const static float32_t csRWidthHeightRatio = 1.0f / 4.0f;
+
+    const vec2f32_t cHeightVec = csRHeightVelRatio * mVel;
+    const vec2f32_t cWidthVec = csRWidthHeightRatio *
+        glm::rotate( cHeightVec, -glm::half_pi<float32_t>() );
+
+    if( valid() ) {
+        vec2f32_t heightPoss[2], widthPoss[2];
+        for( uint32_t posIdx = 0; posIdx < 2; posIdx++ ) {
+            float32_t posDir = ( posIdx == 0 ) ? 1.0 : -1.0f;
+            heightPoss[posIdx] = mPos + posDir * cHeightVec;
+            widthPoss[posIdx] = mPos + posDir * cWidthVec;
+        }
+
+        glBegin( GL_TRIANGLE_STRIP ); {
+            glColor4ubv( (uint8_t*)&mColor );
+            glVertex2fv( VECTOR_AT(heightPoss[0], 0) );
+            glVertex2fv( VECTOR_AT(widthPoss[0], 0) );
+            glVertex2fv( VECTOR_AT(widthPoss[1], 0) );
+            glVertex2fv( VECTOR_AT(heightPoss[1], 0) );
+        } glEnd();
+    }
 }
 
 
@@ -43,8 +67,7 @@ bool32_t particle_t::valid() const {
 
 /// 'ssn::particulator_t' Functions ///
 
-particulator_t::particulator_t( llce::rng_t* const pRNG ) :
-        mRNG( pRNG ), mSize( 0 ) {
+particulator_t::particulator_t( llce::rng_t* const pRNG ) : mRNG( pRNG ) {
     
 }
 
@@ -54,12 +77,18 @@ void particulator_t::update( const float64_t pDT ) {
     // NOTE(JRC): Upshot w/ this method is that we can have dynamic lifetimes, where
     // an update costs O(logn), insert typically is O(1), and remove is O(logn) per frame
     // (tend not to be many removals per frame), also w/ good cache performance
+    for( uint32_t partIdx = 0; partIdx < mParticles.size(); partIdx++ ) {
+        particle_t& particle = mParticles.front( partIdx );
+        particle.update( pDT );
+    } while( !mParticles.front(0).valid() && !mParticles.empty() ) {
+        mParticles.pop_front();
+    }
 }
 
 
 void particulator_t::render() const {
-    for( uint32_t partIdx = 0; partIdx < mSize && mParticles[mSize].valid(); partIdx++ ) {
-        const particle_t& particle = mParticles[mSize];
+    for( uint32_t partIdx = 0; partIdx < mParticles.size(); partIdx++ ) {
+        const particle_t& particle = mParticles.front( partIdx );
         particle.render();
     }
 }
@@ -70,27 +99,39 @@ void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir )
     const static uint32_t csMaxDeviation = 2;
 
     const uint32_t cNewCount = csAverageCount;
-    const uint32_t cAvailCount = std::min( cNewCount, particulator_t::MAX_PARTICLE_COUNT - mSize );
+    const uint32_t cAvailCount = glm::min( cNewCount,
+        particulator_t::MAX_PARTICLE_COUNT - static_cast<uint32_t>(mParticles.size()) );
     LLCE_CHECK_WARNING( cNewCount != cAvailCount,
         "Couldn't generate all particles due to insufficient space; " <<
         "using all " << cAvailCount << " available particles." );
 
     const static float32_t csThetaRange = M_PI / 4.0f;
-    const static float32_t csMagRange = 1.0e-1f;
-
     const llce::interval_t cThetaInt(
         glm::orientedAngle(vec2f32_t(1.0f, 0.0f), pDir), csThetaRange,
         llce::interval_t::anchor_e::avg );
-    const llce::interval_t cMagInt(
-        1.0f, csMagRange,
+
+    const static float32_t csOffsetRange = 5.0e-2f;
+    const llce::interval_t cOffsetInt(
+        1.0e-1f * glm::length(pDir), csOffsetRange,
+        llce::interval_t::anchor_e::avg );
+
+    const static float32_t csSpeedRange = 5.0e-2f;
+    const llce::interval_t cSpeedInt(
+        5.0e-1f * glm::length(pDir), csSpeedRange,
         llce::interval_t::anchor_e::avg );
 
     for( uint32_t partIdx = 0; partIdx < cAvailCount; partIdx++ ) {
-        particle_t& particle = mParticles[mSize + partIdx];
-        float32_t partTheta = cThetaInt.interp( static_cast<float32_t>(mRNG->nextf()) );
-        // particle.mPos = ;
-        // particle.mVel = ;
-        // particle.mPos = ;
+        float32_t partTheta = cThetaInt.interp( mRNG->nextf() );
+        float32_t partOffset = cOffsetInt.interp( mRNG->nextf() );
+        float32_t partSpeed = cSpeedInt.interp( mRNG->nextf() );
+        vec2f32_t partDir( glm::cos(partTheta), glm::sin(partTheta) );
+
+        mParticles.push_back( particle_t(
+            pSource + partOffset * partDir, // position
+            partSpeed * partDir,            // velocity
+            &ssn::color::TEAM[2],           // color
+            ssn::MAX_HIT_TIME               // lifetime
+        ) );
     }
 }
 

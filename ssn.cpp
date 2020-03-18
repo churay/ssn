@@ -134,13 +134,13 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
             if( puck->hit(paddle) ) {
                 bounds->claim( paddle );
-                // particulator->generate();
+                particulator->generate( puck->mBBox.mPos, puck->mVel );
                 pState->ht += pDT;
             }
 
         }
 
-        // particulator->update( pDT );
+        particulator->update( pDT );
     }
 
     if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) { // Game Scoring //

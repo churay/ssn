@@ -7,6 +7,8 @@
 #include "circle_t.h"
 #include "rng_t.h"
 
+#include "deque.hpp"
+
 #include "ssn_data.h"
 #include "consts.h"
 
@@ -18,7 +20,8 @@ class particle_t {
     /// Constructors ///
 
     particle_t();
-    particle_t( const vec2f32_t& pPos, const color4u8_t* pColor, const float32_t pLifetime );
+    particle_t( const vec2f32_t& pPos, const vec2f32_t& pVel,
+        const color4u8_t* pColor, const float32_t pLifetime );
 
     /// Class Functions ///
 
@@ -35,7 +38,7 @@ class particle_t {
     vec2f32_t mVel; // units: world / second
     vec2f32_t mAccel; // units: world / second**2
     const color4u8_t* mColor; // units: (r,g,b,a)
-    float32_t mLifetime; // units: second
+    float32_t mLifetime; // units: seconds
 };
 
 
@@ -70,9 +73,7 @@ class particulator_t {
     public:
 
     llce::rng_t* mRNG;
-
-    particle_t mParticles[MAX_PARTICLE_COUNT];
-    uint32_t mSize;
+    llce::deque<particle_t, MAX_PARTICLE_COUNT> mParticles;
 };
 
 }
