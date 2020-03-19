@@ -101,18 +101,18 @@ void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir )
     const uint32_t cNewCount = csAverageCount;
     const uint32_t cAvailCount = glm::min( cNewCount,
         particulator_t::MAX_PARTICLE_COUNT - static_cast<uint32_t>(mParticles.size()) );
-    LLCE_CHECK_WARNING( cNewCount != cAvailCount,
+    LLCE_CHECK_WARNING( cNewCount == cAvailCount,
         "Couldn't generate all particles due to insufficient space; " <<
         "using all " << cAvailCount << " available particles." );
 
-    const static float32_t csThetaRange = M_PI / 4.0f;
+    const static float32_t csThetaRange = glm::pi<float32_t>() / 2.0f;
     const llce::interval_t cThetaInt(
-        glm::orientedAngle(vec2f32_t(1.0f, 0.0f), pDir), csThetaRange,
+        glm::orientedAngle(vec2f32_t(1.0f, 0.0f), glm::normalize(pDir)), csThetaRange,
         llce::interval_t::anchor_e::avg );
 
-    const static float32_t csOffsetRange = 5.0e-2f;
+    const static float32_t csOffsetRange = 1.0e-3f;
     const llce::interval_t cOffsetInt(
-        1.0e-1f * glm::length(pDir), csOffsetRange,
+        5.0e-2f * glm::length(pDir), csOffsetRange,
         llce::interval_t::anchor_e::avg );
 
     const static float32_t csSpeedRange = 5.0e-2f;
@@ -127,10 +127,10 @@ void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir )
         vec2f32_t partDir( glm::cos(partTheta), glm::sin(partTheta) );
 
         mParticles.push_back( particle_t(
-            pSource + partOffset * partDir, // position
-            partSpeed * partDir,            // velocity
-            &ssn::color::TEAM[2],           // color
-            ssn::MAX_HIT_TIME               // lifetime
+            pSource + partOffset * partDir,        // position
+            partSpeed * partDir,                   // velocity
+            &ssn::color::TEAM[ssn::team::neutral], // color
+            ssn::MAX_HIT_TIME                      // lifetime
         ) );
     }
 }
