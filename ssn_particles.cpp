@@ -73,10 +73,6 @@ particulator_t::particulator_t( llce::rng_t* const pRNG ) : mRNG( pRNG ) {
 
 
 void particulator_t::update( const float64_t pDT ) {
-    // TODO(JRC): Update all lifetimes, then remove min until min has positive lifetime
-    // NOTE(JRC): Upshot w/ this method is that we can have dynamic lifetimes, where
-    // an update costs O(logn), insert typically is O(1), and remove is O(logn) per frame
-    // (tend not to be many removals per frame), also w/ good cache performance
     for( uint32_t partIdx = 0; partIdx < mParticles.size(); partIdx++ ) {
         particle_t& particle = mParticles.front( partIdx );
         particle.update( pDT );
@@ -95,7 +91,7 @@ void particulator_t::render() const {
 
 
 void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir ) {
-    const static uint32_t csAverageCount = particulator_t::MAX_PARTICLE_COUNT / 8;
+    const static uint32_t csAverageCount = 3;
     const static uint32_t csMaxDeviation = 2;
 
     const uint32_t cNewCount = csAverageCount;
@@ -105,7 +101,7 @@ void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir )
         "Couldn't generate all particles due to insufficient space; " <<
         "using all " << cAvailCount << " available particles." );
 
-    const static float32_t csThetaRange = glm::pi<float32_t>() / 2.0f;
+    const static float32_t csThetaRange = glm::pi<float32_t>() / 4.0f;
     const llce::interval_t cThetaInt(
         glm::orientedAngle(vec2f32_t(1.0f, 0.0f), glm::normalize(pDir)), csThetaRange,
         llce::interval_t::anchor_e::avg );

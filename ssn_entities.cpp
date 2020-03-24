@@ -134,13 +134,20 @@ void paddle_t::render() const {
     const static llce::circle_t csColorBounds( csPaddleBounds.mCenter, 0.90f * csPaddleBounds.mRadius );
     const static color4u8_t* csPaddleOutlineColor = &ssn::color::INTERFACE;
 
-    const float32_t cCooldownPercent = ( paddle_t::RUSH_COOLDOWN - mRushCooldown ) / paddle_t::RUSH_COOLDOWN;
+    const float32_t cCooldownPercent = glm::min( 1.0f,
+        (paddle_t::RUSH_COOLDOWN - mRushCooldown) / paddle_t::RUSH_COOLDOWN );
+
+    const color4f32_t cColorF32 = llce::gfx::color::u82f32( *mColor );
+    const color4f32_t cCooldownColorF32 = llce::gfx::color::saturateRGB(
+        cColorF32, (cCooldownPercent >= 1.0f) ? 0.0f : -0.5f );
+    const color4u8_t cCooldownColor = llce::gfx::color::f322u8( cCooldownColorF32 );
 
     llce::gfx::render_context_t entityRC( mBBox, mColor );
     llce::gfx::circle::render( csPaddleBounds, csPaddleOutlineColor );
     llce::gfx::circle::render( csColorBounds, &ssn::color::TEAM[ssn::team::neutral] );
     llce::gfx::circle::render( csColorBounds, glm::half_pi<float32_t>(),
-        glm::half_pi<float32_t>() + 2.0f * glm::pi<float32_t>() * cCooldownPercent, mColor );
+        glm::half_pi<float32_t>() + 2.0f * glm::pi<float32_t>() * cCooldownPercent,
+        &cCooldownColor );
 }
 
 
