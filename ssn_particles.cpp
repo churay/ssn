@@ -12,57 +12,92 @@
 
 namespace ssn {
 
+/// 'ssn::particle_t' Constants ///
+
+typedef void (*particle_update_f)( particle_t* pParticle, const float64_t pDT );
+constexpr static particle_update_f PARTICLE_UPDATE_FUNS[] = {
+    particle_t::update_undefined,
+    particle_t::update_hit };
+
+typedef void (*particle_render_f)( const particle_t* pParticle );
+constexpr static particle_render_f PARTICLE_RENDER_FUNS[] = {
+    particle_t::render_undefined,
+    particle_t::render_hit };
+
 /// 'ssn::particle_t' Functions ///
 
 particle_t::particle_t() :
-        mPos( 0.0f, 0.0f ), mVel( 0.0f, 0.0f ), mAccel( 0.0f, 0.0f ), mColor( NULL ), mLifetime( 0.0f ) {
+        mType( particle_t::type_e::undefined ), mLifetime( 0.0f ),
+        mPos( 0.0f, 0.0f ), mVel( 0.0f, 0.0f ), mAccel( 0.0f, 0.0f ) {
     
 }
 
 
-particle_t::particle_t( const vec2f32_t& pPos, const vec2f32_t& pVel, const color4u8_t* pColor, const float32_t pLifetime ) :
-        mPos( pPos ), mVel( pVel ), mAccel( 0.0f, 0.0f ), mColor( pColor ), mLifetime( pLifetime ) {
+particle_t::particle_t( const type_e pType, const float32_t pLifetime,
+            const vec2f32_t& pPos, const vec2f32_t& pVel, const vec2f32_t& pAccel ) :
+        mType( pType ), mLifetime( pLifetime ),
+        mPos( pPos ), mVel( pVel ), mAccel( pAccel ) {
     
 }
 
 
 void particle_t::update( const float64_t pDT ) {
-    // mAccel += 0.0f;
-    mVel += static_cast<float32_t>( pDT ) * mAccel;
-    mPos += static_cast<float32_t>( pDT ) * mVel;
-    mLifetime = glm::max( 0.0f, mLifetime - static_cast<float32_t>(pDT) );
+    PARTICLE_UPDATE_FUNS[mType]( this, pDT );
 }
 
 
 void particle_t::render() const {
+    PARTICLE_RENDER_FUNS[mType]( this );
+}
+
+
+bool32_t particle_t::valid() const {
+    return mLifetime > 0.0f;
+}
+
+/// 'ssn::particle_t' Type Functions ///
+
+void particle_t::update_undefined( particle_t* pParticle, const float64_t pDT ) {
+    pParticle->mVel += static_cast<float32_t>( pDT ) * pParticle->mAccel;
+    pParticle->mPos += static_cast<float32_t>( pDT ) * pParticle->mVel;
+    pParticle->mLifetime = glm::max( 0.0f, pParticle->mLifetime - static_cast<float32_t>(pDT) );
+}
+
+
+void particle_t::update_hit( particle_t* pParticle, const float64_t pDT ) {
+    particle_t::update_undefined( pParticle, pDT );
+}
+
+
+void particle_t::render_undefined( const particle_t* pParticle ) {
+    
+}
+
+
+void particle_t::render_hit( const particle_t* pParticle ) {
     const static float32_t csRHeightVelRatio = 1.0f / 8.0f;
     const static float32_t csRWidthHeightRatio = 1.0f / 4.0f;
 
-    const vec2f32_t cHeightVec = csRHeightVelRatio * mVel;
+    const vec2f32_t cHeightVec = csRHeightVelRatio * pParticle->mVel;
     const vec2f32_t cWidthVec = csRWidthHeightRatio *
         glm::rotate( cHeightVec, -glm::half_pi<float32_t>() );
 
-    if( valid() ) {
+    if( pParticle->valid() ) {
         vec2f32_t heightPoss[2], widthPoss[2];
         for( uint32_t posIdx = 0; posIdx < 2; posIdx++ ) {
             float32_t posDir = ( posIdx == 0 ) ? 1.0 : -1.0f;
-            heightPoss[posIdx] = mPos + posDir * cHeightVec;
-            widthPoss[posIdx] = mPos + posDir * cWidthVec;
+            heightPoss[posIdx] = pParticle->mPos + posDir * cHeightVec;
+            widthPoss[posIdx] = pParticle->mPos + posDir * cWidthVec;
         }
 
         glBegin( GL_TRIANGLE_STRIP ); {
-            glColor4ubv( (uint8_t*)&mColor );
+            glColor4ubv( (uint8_t*)&ssn::color::TEAM[ssn::team::neutral] );
             glVertex2fv( VECTOR_AT(heightPoss[0], 0) );
             glVertex2fv( VECTOR_AT(widthPoss[0], 0) );
             glVertex2fv( VECTOR_AT(widthPoss[1], 0) );
             glVertex2fv( VECTOR_AT(heightPoss[1], 0) );
         } glEnd();
     }
-}
-
-
-bool32_t particle_t::valid() const {
-    return mLifetime > 0.0f;
 }
 
 /// 'ssn::particulator_t' Functions ///
@@ -123,10 +158,10 @@ void particulator_t::generate( const vec2f32_t& pSource, const vec2f32_t& pDir )
         vec2f32_t partDir( glm::cos(partTheta), glm::sin(partTheta) );
 
         mParticles.push_back( particle_t(
-            pSource + partOffset * partDir,        // position
-            partSpeed * partDir,                   // velocity
-            &ssn::color::TEAM[ssn::team::neutral], // color
-            ssn::MAX_HIT_TIME                      // lifetime
+            particle_t::type_e::hit,         // particle type
+            ssn::MAX_HIT_TIME,               // lifetime
+            pSource + partOffset * partDir,  // position
+            partSpeed * partDir              // velocity
         ) );
     }
 }

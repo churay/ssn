@@ -17,11 +17,17 @@ namespace ssn {
 class particle_t {
     public:
 
+    /// Class Attributes ///
+
+    enum type_e { undefined = 0, hit };
+
     /// Constructors ///
 
     particle_t();
-    particle_t( const vec2f32_t& pPos, const vec2f32_t& pVel,
-        const color4u8_t* pColor, const float32_t pLifetime );
+    particle_t( const type_e pType, const float32_t pLifetime,
+        const vec2f32_t& pPos = vec2f32_t(0.0f, 0.0f),
+        const vec2f32_t& pVel = vec2f32_t(0.0f, 0.0f),
+        const vec2f32_t& mAccel = vec2f32_t(0.0f, 0.0f) );
 
     /// Class Functions ///
 
@@ -34,11 +40,23 @@ class particle_t {
 
     public:
 
+    type_e mType;
+    float32_t mLifetime; // units: seconds
+
     vec2f32_t mPos; // units: world
     vec2f32_t mVel; // units: world / second
     vec2f32_t mAccel; // units: world / second**2
-    const color4u8_t* mColor; // units: (r,g,b,a)
-    float32_t mLifetime; // units: seconds
+
+    /// Type Functions ///
+
+    // FIXME(JRC): This functions as a reasonable workaround to inheritance
+    // w/ different 'render' overrides, but it isn't perfect because 'type_e'
+    // and these functions need to be in sync.
+    static void update_undefined( particle_t* pParticle, const float64_t pDT );
+    static void update_hit( particle_t* pParticle, const float64_t pDT );
+
+    static void render_undefined( const particle_t* pParticle );
+    static void render_hit( const particle_t* pHit );
 };
 
 
