@@ -55,8 +55,10 @@ void bounds_t::render() const {
 
     const float32_t cCornerRadius = mBBox.xbounds().length() * bounds_t::CORNER_RATIO;
     for( uint32_t cornerIdx = 0; cornerIdx < mCurrAreaCount; cornerIdx++ ) {
-        llce::circle_t cornerCircle( mCurrAreaCorners[cornerIdx], cCornerRadius );
-        llce::gfx::circle::render( cornerCircle, &ssn::color::TEAM[mCurrAreaTeam] );
+        llce::circle_t cornerFullCircle( mCurrAreaCorners[cornerIdx], cCornerRadius );
+        llce::gfx::circle::render( cornerFullCircle, &ssn::color::INTERFACE );
+        llce::circle_t cornerInsetCircle( mCurrAreaCorners[cornerIdx], 0.75f * cCornerRadius );
+        llce::gfx::circle::render( cornerInsetCircle, &ssn::color::TEAM[mCurrAreaTeam] );
     }
 }
 
