@@ -134,7 +134,8 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
             if( puck->hit(paddle) ) {
                 bounds->claim( paddle );
-                particulator->generate( puck->mBounds.mCenter, puck->mVel );
+                particulator->generate_hit(
+                    puck->mBounds.mCenter, puck->mVel, 2.0f * puck->mBounds.mRadius );
                 pState->ht += pDT;
             }
         }

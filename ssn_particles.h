@@ -25,6 +25,7 @@ class particle_t {
 
     particle_t();
     particle_t( const type_e pType, const float32_t pLifetime,
+        const vec2f32_t& pBasisX, const vec2f32_t& pBasisY,
         const vec2f32_t& pPos = vec2f32_t(0.0f, 0.0f),
         const vec2f32_t& pVel = vec2f32_t(0.0f, 0.0f),
         const vec2f32_t& mAccel = vec2f32_t(0.0f, 0.0f) );
@@ -42,6 +43,9 @@ class particle_t {
 
     type_e mType;
     float32_t mLifetime; // units: seconds
+
+    vec2f32_t mBasisX; // units: world
+    vec2f32_t mBasisY; // units: world
 
     vec2f32_t mPos; // units: world
     vec2f32_t mVel; // units: world / second
@@ -76,15 +80,7 @@ class particulator_t {
     void update( const float64_t pDT );
     void render() const;
 
-    void generate( const vec2f32_t& pSource, const vec2f32_t& pDir );
-
-    /// Helper Functions ///
-
-    private:
-
-    void push();
-    void pop();
-    void peek();
+    void generate_hit( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize );
 
     /// Class Fields ///
 
