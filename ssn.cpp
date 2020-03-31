@@ -122,11 +122,15 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
         pState->dt = pDT;
         pState->tt += pDT;
 
+        const bool32_t cPaddleWasRushing = paddle->mAmRushing;
+
         if( pState->ht > 0.0 ) {
             pState->ht = ( pState->ht < ssn::MAX_HIT_TIME ) ? pState->ht + pDT : 0.0;
         } else {
             paddle->move( di.x, di.y );
-            if( de ) { paddle->rush(); }
+            if( de ) {
+                paddle->rush();
+            }
 
             bounds->update( pDT );
             puck->update( pDT );
@@ -135,8 +139,11 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
             if( puck->hit(paddle) ) {
                 bounds->claim( paddle );
                 particulator->generate_hit(
-                    puck->mBounds.mCenter, puck->mVel, 2.0f * puck->mBounds.mRadius );
+                    puck->mBounds.mCenter, puck->mVel, 2.25f * puck->mBounds.mRadius );
                 pState->ht += pDT;
+            } if( !cPaddleWasRushing && paddle->mAmRushing ) {
+                particulator->generate_trail(
+                    paddle->mBounds.mCenter, paddle->mVel, 2.0f * paddle->mBounds.mRadius );
             }
         }
 
