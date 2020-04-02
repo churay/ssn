@@ -23,7 +23,7 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
     // NOTE(JRC): The following code ensures that buffers have consistent aspect
     // ratios relative to their output spaces in screen space. This fact is crucial
     // in making code work in 'ssn::gfx' related to fixing aspect ratios.
-    pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER] = { 512, 512 };
+    pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER] = { 1024, 1024 };
 
     for( uint32_t gfxBufferIdx = 0; gfxBufferIdx < ssn::GFX_BUFFER_COUNT; gfxBufferIdx++ ) {
         llce::gfx::fbo_t gfxBufferFBO( pOutput->gfxBufferRess[gfxBufferIdx] );
@@ -128,9 +128,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
             pState->ht = ( pState->ht < ssn::MAX_HIT_TIME ) ? pState->ht + pDT : 0.0;
         } else {
             paddle->move( di.x, di.y );
-            if( de ) {
-                paddle->rush();
-            }
+            if( de ) { paddle->rush(); }
 
             bounds->update( pDT );
             puck->update( pDT );
@@ -138,11 +136,11 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
             if( puck->hit(paddle) ) {
                 bounds->claim( paddle );
-                particulator->generate_hit(
+                particulator->genHit(
                     puck->mBounds.mCenter, puck->mVel, 2.25f * puck->mBounds.mRadius );
                 pState->ht += pDT;
             } if( !cPaddleWasRushing && paddle->mAmRushing ) {
-                particulator->generate_trail(
+                particulator->genTrail(
                     paddle->mBounds.mCenter, paddle->mVel, 2.0f * paddle->mBounds.mRadius );
             }
         }

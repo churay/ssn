@@ -5,8 +5,9 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
-#include "gfx.h"
 #include "interval_t.h"
+#include "gfx.h"
+#include "geom.h"
 #include "ssn_consts.h"
 
 #include "ssn_particles.h"
@@ -17,17 +18,26 @@ namespace ssn {
 
 typedef void (*particle_update_f)( particle_t* pParticle, const float64_t pDT );
 constexpr static particle_update_f PARTICLE_UPDATE_FUNS[] = {
-    particle_t::update_undefined,
-    particle_t::update_hit,
-    particle_t::update_trail
+    particle_t::updateUndefined,
+    particle_t::updateHit,
+    particle_t::updateTrail
 };
 
 typedef void (*particle_render_f)( const particle_t* pParticle );
 constexpr static particle_render_f PARTICLE_RENDER_FUNS[] = {
-    particle_t::render_undefined,
-    particle_t::render_hit,
-    particle_t::render_trail
+    particle_t::renderUndefined,
+    particle_t::renderHit,
+    particle_t::renderTrail
 };
+
+static_assert( ARRAY_LEN(PARTICLE_UPDATE_FUNS) == ssn::particle_t::type_e::length,
+    "Incorrect number of particle update functions; "
+    "please add all 'ssn::particle_t::update_*' functions to the "
+    "'PARTICLE_UPDATE_FUNS' list in 'particles.cpp'." );
+static_assert( ARRAY_LEN(PARTICLE_RENDER_FUNS) == ssn::particle_t::type_e::length,
+    "Incorrect number of particle render functions; "
+    "please add all 'ssn::particle_t::render_*' functions to the "
+    "'PARTICLE_RENDER_FUNS' list in 'particles.cpp'." );
 
 /// 'ssn::particle_t' Functions ///
 
@@ -68,29 +78,29 @@ bool32_t particle_t::valid() const {
 
 /// 'ssn::particle_t' Type Functions ///
 
-void particle_t::update_undefined( particle_t* pParticle, const float64_t pDT ) {
+void particle_t::updateUndefined( particle_t* pParticle, const float64_t pDT ) {
     pParticle->mVel += static_cast<float32_t>( pDT ) * pParticle->mAccel;
     pParticle->mPos += static_cast<float32_t>( pDT ) * pParticle->mVel;
     pParticle->mLifetime = glm::max( 0.0f, pParticle->mLifetime - static_cast<float32_t>(pDT) );
 }
 
 
-void particle_t::update_hit( particle_t* pParticle, const float64_t pDT ) {
-    particle_t::update_undefined( pParticle, pDT );
+void particle_t::updateHit( particle_t* pParticle, const float64_t pDT ) {
+    particle_t::updateUndefined( pParticle, pDT );
 }
 
 
-void particle_t::update_trail( particle_t* pParticle, const float64_t pDT ) {
-    particle_t::update_undefined( pParticle, pDT );
+void particle_t::updateTrail( particle_t* pParticle, const float64_t pDT ) {
+    particle_t::updateUndefined( pParticle, pDT );
 }
 
 
-void particle_t::render_undefined( const particle_t* pParticle ) {
+void particle_t::renderUndefined( const particle_t* pParticle ) {
     
 }
 
 
-void particle_t::render_hit( const particle_t* pParticle ) {
+void particle_t::renderHit( const particle_t* pParticle ) {
     const static float32_t csWidthHeightRatio = 2.5e-1f;
     glBegin( GL_TRIANGLE_STRIP ); {
         glColor4ubv( (uint8_t*)&ssn::color::TEAM[ssn::team::neutral] );
@@ -102,7 +112,7 @@ void particle_t::render_hit( const particle_t* pParticle ) {
 }
 
 
-void particle_t::render_trail( const particle_t* pParticle ) {
+void particle_t::renderTrail( const particle_t* pParticle ) {
     glBegin( GL_TRIANGLE_STRIP ); {
         glColor4ubv( (uint8_t*)&ssn::color::TEAM[ssn::team::neutral] );
         glVertex2f( 0.5f, 1.0f );
@@ -137,25 +147,25 @@ void particulator_t::render() const {
 }
 
 
-void particulator_t::generate_hit( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize ) {
+void particulator_t::genHit( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize ) {
     const static uint32_t csMaxPartCount = 3;
-    const uint32_t cPartCount = allocate_particles( csMaxPartCount );
+    const uint32_t cPartCount = allocParticles( csMaxPartCount );
 
     const static float32_t csThetaRange = glm::pi<float32_t>() / 4.0f;
     const llce::interval_t cThetaInt(
         glm::orientedAngle(vec2f32_t(1.0f, 0.0f), glm::normalize(pDir)), csThetaRange,
-        llce::interval_t::anchor_e::avg );
+        llce::geom::anchor1D::mid );
 
     // const static float32_t csOffsetRange = 2.5e-1f, csOffsetMax = 3.5e-1f;
     // const llce::interval_t cOffsetInt(
     //     pSize * csOffsetMin, pSize * csOffsetMax,
-    //     llce::interval_t::anchor_e::ext );
+    //     llce::geom::anchor1D::lo );
     const llce::interval_t cOffsetInt( 6.5e-1f * pSize );
 
     // const static float32_t csSpeedRange = 5.0e-2f;
     // const llce::interval_t cSpeedInt(
     //     5.0e-1f * glm::length(pDir), csSpeedRange,
-    //     llce::interval_t::anchor_e::avg );
+    //     llce::geom::anchor1D::mid );
     const llce::interval_t cSpeedInt( 5.0e-1f * glm::length(pDir) );
 
     for( uint32_t partIdx = 0; partIdx < cPartCount; partIdx++ ) {
@@ -182,16 +192,16 @@ void particulator_t::generate_hit( const vec2f32_t& pSource, const vec2f32_t& pD
 }
 
 
-void particulator_t::generate_trail( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize ) {
+void particulator_t::genTrail( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize ) {
     const static uint32_t csMaxPartCount = 12;
-    const uint32_t cPartCount = allocate_particles( csMaxPartCount );
+    const uint32_t cPartCount = allocParticles( csMaxPartCount );
 
     const vec2f32_t pTrailU = 3.0f * pSize * glm::normalize( pDir );
     const vec2f32_t pTrailV = pSize * glm::rotate(
         glm::normalize(pTrailU), glm::half_pi<float32_t>() );
 
     const llce::interval_t cUInt( 0, glm::length(pTrailU) );
-    const llce::interval_t cVInt( 0, pSize, llce::interval_t::anchor_e::avg ); // glm::length(pTrailV) );
+    const llce::interval_t cVInt( 0, pSize, llce::geom::anchor1D::mid ); // glm::length(pTrailV) );
 
     for( uint32_t partIdx = 0; partIdx < cPartCount; partIdx++ ) {
         float32_t partFrac = ( partIdx + 0.0f ) / ( cPartCount - 1.0f );
@@ -218,7 +228,7 @@ void particulator_t::generate_trail( const vec2f32_t& pSource, const vec2f32_t& 
 }
 
 
-uint32_t particulator_t::allocate_particles( const uint32_t pParticleCount ) {
+uint32_t particulator_t::allocParticles( const uint32_t pParticleCount ) {
     const uint32_t cActualCount = glm::min( pParticleCount,
         particulator_t::MAX_PARTICLE_COUNT - static_cast<uint32_t>(mParticles.size()) );
     LLCE_CHECK_WARNING( pParticleCount == cActualCount,

@@ -5,6 +5,7 @@
 #include <glm/ext/matrix_transform.hpp>
 
 #include "gfx.h"
+#include "geom.h"
 #include "ssn_entity_t.h"
 
 namespace ssn {
@@ -18,7 +19,7 @@ entity_t::entity_t( const llce::box_t& pBBox, const color4u8_t* pColor ) :
 }
 
 entity_t::entity_t( const llce::circle_t& pBounds, const color4u8_t* pColor ) :
-        mBounds( pBounds ), mBBox( pBounds.mCenter, 2.0f * pBounds.mRadius * vec2f32_t(1.0f, 1.0f), llce::box_t::anchor_e::c ),
+        mBounds( pBounds ), mBBox( pBounds.mCenter, 2.0f * pBounds.mRadius * vec2f32_t(1.0f, 1.0f), llce::geom::anchor2D::mm ),
         mVel( 0.0f, 0.0f ), mAccel( 0.0f, 0.0f ), mColor( pColor ) {
     
 }

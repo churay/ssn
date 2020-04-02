@@ -19,7 +19,7 @@ class particle_t {
 
     /// Class Attributes ///
 
-    enum type_e { undefined = 0, hit, trail };
+    enum type_e { undefined = 0, hit, trail, length };
 
     /// Constructors ///
 
@@ -56,13 +56,13 @@ class particle_t {
     // FIXME(JRC): This functions as a reasonable workaround to inheritance
     // w/ different 'render' overrides, but it isn't perfect because 'type_e'
     // and these functions need to be in sync.
-    static void update_undefined( particle_t* pParticle, const float64_t pDT );
-    static void update_hit( particle_t* pParticle, const float64_t pDT );
-    static void update_trail( particle_t* pParticle, const float64_t pDT );
+    static void updateUndefined( particle_t* pParticle, const float64_t pDT );
+    static void updateHit( particle_t* pParticle, const float64_t pDT );
+    static void updateTrail( particle_t* pParticle, const float64_t pDT );
 
-    static void render_undefined( const particle_t* pParticle );
-    static void render_hit( const particle_t* pHit );
-    static void render_trail( const particle_t* pHit );
+    static void renderUndefined( const particle_t* pParticle );
+    static void renderHit( const particle_t* pHit );
+    static void renderTrail( const particle_t* pHit );
 };
 
 
@@ -82,14 +82,14 @@ class particulator_t {
     void update( const float64_t pDT );
     void render() const;
 
-    void generate_hit( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize );
-    void generate_trail( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize );
+    void genHit( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize );
+    void genTrail( const vec2f32_t& pSource, const vec2f32_t& pDir, const float32_t& pSize );
 
     /// Helper Functions ///
 
     private:
 
-    uint32_t allocate_particles( const uint32_t pParticleCount );
+    uint32_t allocParticles( const uint32_t pParticleCount );
 
     /// Class Fields ///
 
