@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "gfx.h"
+#include "geom.h"
 #include "input.h"
 
 #include "ssn_consts.h"
@@ -232,6 +233,12 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
         puck->render();
         particulator->render();
         paddle->render();
+    }
+
+    { // Annotation Render //
+        llce::gfx::text::render( "YOU", &ssn::color::INFO, 20.0f,
+            paddle->mBBox.mPos + llce::geom::anchor( paddle->mBBox.mDims, llce::geom::anchor2D::mh ),
+            llce::geom::anchor2D::ml );
     }
 
     return true;
