@@ -1,5 +1,5 @@
-#ifndef HMP_CONSTS_H
-#define HMP_CONSTS_H
+#ifndef SSN_CONSTS_H
+#define SSN_CONSTS_H
 
 #include "ssn_data.h"
 

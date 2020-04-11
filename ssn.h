@@ -8,6 +8,7 @@
 #include "ssn_consts.h"
 
 #include "input.h"
+#include "output.h"
 #include "consts.h"
 
 namespace ssn {
@@ -30,34 +31,14 @@ struct state_t {
     particulator_t particulator;
 };
 
-/// Input Types/Variables ///
+/// Input/Output Types/Variables ///
 
-struct input_t {
-    llce::input::keyboard_t keyboard;
-};
-
-/// Output Types/Variables ///
-
-constexpr static uint32_t GFX_BUFFER_MASTER = 0;
-constexpr static uint32_t GFX_BUFFER_COUNT = 1;
-
-constexpr static uint32_t SFX_BUFFER_MASTER = 0;
-constexpr static uint32_t SFX_BUFFER_COUNT = 1;
-
-struct output_t {
-    // Graphics Output //
-    uint32_t gfxBufferFBOs[GFX_BUFFER_COUNT];   // frame buffers
-    uint32_t gfxBufferCBOs[GFX_BUFFER_COUNT];   // color buffers
-    uint32_t gfxBufferDBOs[GFX_BUFFER_COUNT];   // depth buffers
-    vec2u32_t gfxBufferRess[GFX_BUFFER_COUNT];  // buffer resolutions
-
-    // Audio Output //
-    SDL_AudioSpec sfxConfig;
-    bit8_t* sfxBuffers[SFX_BUFFER_COUNT];
-    uint32_t sfxBufferFrames[SFX_BUFFER_COUNT];
-};
+typedef llce::input::input_t<true, false> input_t;
+typedef llce::output::output_t<1, 1> output_t;
 
 }
+
+/// Functions ///
 
 #if !LLCE_DYLOAD
 extern "C" {

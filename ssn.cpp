@@ -10,6 +10,7 @@
 #include "gfx.h"
 #include "geom.h"
 #include "input.h"
+#include "output.h"
 
 #include "ssn_consts.h"
 #include "ssn.h"
@@ -21,22 +22,13 @@ namespace ssn {
 extern "C" bool32_t boot( ssn::output_t* pOutput ) {
     // Initialize Graphics //
 
-    // NOTE(JRC): The following code ensures that buffers have consistent aspect
-    // ratios relative to their output spaces in screen space. This fact is crucial
-    // in making code work in 'ssn::gfx' related to fixing aspect ratios.
-    pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER] = { 1024, 1024 };
+    const vec2u32_t cGFXBuffRes( 1024, 1024 );
 
-    for( uint32_t gfxBufferIdx = 0; gfxBufferIdx < ssn::GFX_BUFFER_COUNT; gfxBufferIdx++ ) {
-        llce::gfx::fbo_t gfxBufferFBO( pOutput->gfxBufferRess[gfxBufferIdx] );
+    llce::output::gfxboot<1, 1>( *pOutput, cGFXBuffRes );
 
-        LLCE_ASSERT_ERROR( gfxBufferFBO.valid(),
-            "Failed to initialize frame buffer " << gfxBufferIdx << "; " <<
-            "failed with frame buffer error " << glCheckFramebufferStatus(GL_FRAMEBUFFER) << "." );
+    // Initialize Sound //
 
-        pOutput->gfxBufferFBOs[gfxBufferIdx] = gfxBufferFBO.mFrameID;
-        pOutput->gfxBufferCBOs[gfxBufferIdx] = gfxBufferFBO.mColorID;
-        pOutput->gfxBufferDBOs[gfxBufferIdx] = gfxBufferFBO.mDepthID;
-    }
+    // ... //
 
     return true;
 }
@@ -186,7 +178,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
             return windCount != 0;
         };
 
-        const vec2u32_t& cPixelRes = pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER];
+        const vec2u32_t& cPixelRes = pOutput->gfxBufferRess[llce::output::BUFFER_SHARED_ID];
         for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
             for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
                 vec2f32_t pixelPos(
@@ -215,8 +207,8 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
 
 extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
     llce::gfx::fbo_context_t metaFBOC(
-        pOutput->gfxBufferFBOs[ssn::GFX_BUFFER_MASTER],
-        pOutput->gfxBufferRess[ssn::GFX_BUFFER_MASTER] );
+        pOutput->gfxBufferFBOs[llce::output::BUFFER_SHARED_ID],
+        pOutput->gfxBufferRess[llce::output::BUFFER_SHARED_ID] );
 
     llce::gfx::render_context_t metaRC(
         llce::box_t(-1.0f, -1.0f, 2.0f, 2.0f),
