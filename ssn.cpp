@@ -24,7 +24,7 @@ extern "C" bool32_t boot( ssn::output_t* pOutput ) {
 
     const vec2u32_t cGFXBuffRes( 1024, 1024 );
 
-    llce::output::gfxboot<1, 1>( *pOutput, cGFXBuffRes );
+    llce::output::boot<1, 0>( *pOutput, cGFXBuffRes );
 
     // Initialize Sound //
 
