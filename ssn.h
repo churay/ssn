@@ -33,7 +33,7 @@ struct state_t {
 
 /// Input/Output Types/Variables ///
 
-typedef llce::input::input_t input_t;
+typedef llce::input::input_t<true, false> input_t;
 typedef llce::output::output_t<1, 0> output_t;
 
 }

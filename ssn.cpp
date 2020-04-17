@@ -91,17 +91,17 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     bool32_t de = false;
 
     { // Input Processing //
-        if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_W) ) {
+        if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_W) ) {
             di.y += 1;
-        } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_S) ) {
+        } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_S) ) {
             di.y -= 1;
-        } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_A) ) {
+        } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_A) ) {
             di.x -= 1;
-        } if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_D) ) {
+        } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_D) ) {
             di.x += 1;
         }
 
-        if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_E) ) {
+        if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_E) ) {
             de = true;
         }
     }
@@ -141,7 +141,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
         particulator->update( pDT );
     }
 
-    if( llce::input::isKeyDown(pInput->keyboard, SDL_SCANCODE_T) ) { // Game Scoring //
+    if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_T) ) { // Game Scoring //
         vec2i32_t scores = { 0, 0 };
 
         // NOTE(JRC): The source for this algorithm was derived from here:
