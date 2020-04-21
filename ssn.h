@@ -21,6 +21,9 @@ struct state_t {
     float64_t tt; // total time
     float64_t ht; // hit time
 
+    mode::mode_e mid; // game mode
+    mode::mode_e pmid; // pending mode
+
     llce::rng_t rng; // random number generator
 
     // Game State //
@@ -29,6 +32,9 @@ struct state_t {
     paddle_t paddle;
 
     particulator_t particulator;
+
+    // Menu State //
+    uint8_t menuIdx;
 };
 
 /// Input/Output Types/Variables ///
