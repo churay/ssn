@@ -7,6 +7,7 @@
 #include "ssn_particles.h"
 #include "ssn_consts.h"
 
+#include "gui.h"
 #include "input.h"
 #include "output.h"
 #include "consts.h"
@@ -34,7 +35,8 @@ struct state_t {
     particulator_t particulator;
 
     // Menu State //
-    uint8_t menuIdx;
+    llce::gui::menu_t titleMenu;
+    llce::gui::menu_t resetMenu;
 };
 
 /// Input/Output Types/Variables ///

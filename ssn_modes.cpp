@@ -9,6 +9,7 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/ext/scalar_constants.hpp>
 
+#include "gui.h"
 #include "gfx.h"
 #include "sfx.h"
 #include "geom.h"
@@ -23,9 +24,9 @@ namespace mode {
 
 /// Helper Structures ///
 
-constexpr static char8_t TITLE_ITEM_TEXT[][32] = { "START", "EXIT " };
+constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
-constexpr static char8_t RESET_ITEM_TEXT[][32] = { "REPLAY", "EXIT  " };
+constexpr static char8_t RESET_ITEM_TEXT[][8] = { "REPLAY", "EXIT  " };
 constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
 
 /// 'ssn::mode::game' Functions  ///
@@ -224,67 +225,33 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 /// 'ssn::mode::title' Functions  ///
 
 bool32_t title::init( ssn::state_t* pState ) {
-    pState->menuIdx = 0;
+    const char8_t* cTitleItems[] = { &TITLE_ITEM_TEXT[0][0], &TITLE_ITEM_TEXT[1][0] };
+    pState->titleMenu = llce::gui::menu_t( "SSN",
+        cTitleItems, TITLE_ITEM_COUNT,
+        &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
+        &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+
     return true;
 }
 
 
 bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    int32_t dy[2] = { 0, 0 };
-    bool32_t dselect = false;
+    const auto cMenuAction = pState->titleMenu.update( pInput->keyboard(), pDT );
+    const uint32_t cMenuIndex = pState->titleMenu.mSelectIndex;
 
-    if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_D) ) {
-        dselect = true;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_L) ) {
-        dselect = true;
-    }
-
-    if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_W) ) {
-        dy[0] += 1;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_S) ) {
-        dy[0] -= 1;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_I) ) {
-        dy[1] += 1;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_K) ) {
-        dy[1] -= 1;
-    }
-
-    if( dselect ) {
-        if( pState->menuIdx == 0 ) {
+    if( cMenuAction == llce::gui::menu_t::action_e::select ) {
+        if( cMenuIndex == 0 ) {
             pState->pmid = ssn::mode::game_id;
-        } else if( pState->menuIdx == 1 ) {
+        } else if( cMenuIndex == 1 ) {
             pState->pmid = ssn::mode::exit_id;
         }
-    } else {
-        pState->menuIdx = ( pState->menuIdx + dy[0] + dy[1] ) % TITLE_ITEM_COUNT;
     }
 
     return true;
 }
 
 bool32_t title::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    { // Header //
-        const float32_t cHeaderPadding = 0.05f;
-        const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
-        const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
-        llce::gfx::text::render( "SSN", &ssn::color::FOREGROUND, llce::box_t(cHeaderPos, cHeaderDims) );
-    }
-
-    { // Items //
-        const float32_t cItemPadding = 0.05f;
-        const vec2f32_t cItemDims = { 1.0f, 0.10f };
-        const vec2f32_t cItemBase = { 0.0f, 0.50f };
-
-        for( uint32_t itemIdx = 0; itemIdx < TITLE_ITEM_COUNT; itemIdx++ ) {
-            vec2f32_t itemPos = cItemBase -
-                static_cast<float32_t>(itemIdx) * vec2f32_t( 0.0f, cItemDims.y + cItemPadding );
-            llce::gfx::render_context_t itemRC(
-                llce::box_t(itemPos, cItemDims, llce::geom::anchor2D::lh), &ssn::color::FOREGROUND );
-
-            if( itemIdx == pState->menuIdx ) { itemRC.render(); }
-            llce::gfx::text::render( TITLE_ITEM_TEXT[itemIdx], &ssn::color::TEAM[ssn::team::neutral] );
-        }
-    }
+    pState->titleMenu.render();
 
     return true;
 }
@@ -310,39 +277,26 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 /// 'ssn::mode::reset' Functions  ///
 
 bool32_t reset::init( ssn::state_t* pState ) {
-    pState->menuIdx = 0;
+    const char8_t* cResetItems[] = { &RESET_ITEM_TEXT[0][0], &RESET_ITEM_TEXT[1][0] };
+    pState->resetMenu = llce::gui::menu_t( "GAME!",
+        cResetItems, RESET_ITEM_COUNT,
+        &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
+        &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+
     return true;
 }
 
 
 bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    int32_t dy[2] = { 0, 0 };
-    bool32_t dselect = false;
+    const auto cMenuAction = pState->resetMenu.update( pInput->keyboard(), pDT );
+    const uint32_t cMenuIndex = pState->resetMenu.mSelectIndex;
 
-    if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_D) ) {
-        dselect = true;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_L) ) {
-        dselect = true;
-    }
-
-    if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_W) ) {
-        dy[0] += 1;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_S) ) {
-        dy[0] -= 1;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_I) ) {
-        dy[1] += 1;
-    } if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_K) ) {
-        dy[1] -= 1;
-    }
-
-    if( dselect ) {
-        if( pState->menuIdx == 0 ) {
+    if( cMenuAction == llce::gui::menu_t::action_e::select ) {
+        if( cMenuIndex == 0 ) {
             pState->pmid = ssn::mode::game_id;
-        } else if( pState->menuIdx == 1 ) {
+        } else if( cMenuIndex == 1 ) {
             pState->pmid = ssn::mode::title_id;
         }
-    } else {
-        pState->menuIdx = ( pState->menuIdx + dy[0] + dy[1] ) % RESET_ITEM_COUNT;
     }
 
     return true;
@@ -350,28 +304,7 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
 
 bool32_t reset::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    { // Header //
-        const float32_t cHeaderPadding = 0.05f;
-        const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
-        const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
-        llce::gfx::text::render( "GAME!", &ssn::color::FOREGROUND, llce::box_t(cHeaderPos, cHeaderDims) );
-    }
-
-    { // Items //
-        const float32_t cItemPadding = 0.05f;
-        const vec2f32_t cItemDims = { 1.0f, 0.10f };
-        const vec2f32_t cItemBase = { 0.0f, 0.50f };
-
-        for( uint32_t itemIdx = 0; itemIdx < RESET_ITEM_COUNT; itemIdx++ ) {
-            vec2f32_t itemPos = cItemBase -
-                static_cast<float32_t>(itemIdx) * vec2f32_t( 0.0f, cItemDims.y + cItemPadding );
-            llce::gfx::render_context_t itemRC(
-                llce::box_t(itemPos, cItemDims, llce::geom::anchor2D::lh), &ssn::color::FOREGROUND );
-
-            if( itemIdx == pState->menuIdx ) { itemRC.render(); }
-            llce::gfx::text::render( RESET_ITEM_TEXT[itemIdx], &ssn::color::TEAM[ssn::team::neutral] );
-        }
-    }
+    pState->resetMenu.render();
 
     return true;
 }
