@@ -236,10 +236,10 @@ bool32_t title::init( ssn::state_t* pState ) {
 
 
 bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    const auto cMenuAction = pState->titleMenu.update( pInput->keyboard(), pDT );
+    const auto cMenuEvent = pState->titleMenu.update( pInput->keyboard(), pDT );
     const uint32_t cMenuIndex = pState->titleMenu.mSelectIndex;
 
-    if( cMenuAction == llce::gui::menu_t::action_e::select ) {
+    if( cMenuEvent == llce::gui::event_e::select ) {
         if( cMenuIndex == 0 ) {
             pState->pmid = ssn::mode::game_id;
         } else if( cMenuIndex == 1 ) {
@@ -288,10 +288,10 @@ bool32_t reset::init( ssn::state_t* pState ) {
 
 
 bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    const auto cMenuAction = pState->resetMenu.update( pInput->keyboard(), pDT );
+    const auto cMenuEvent = pState->resetMenu.update( pInput->keyboard(), pDT );
     const uint32_t cMenuIndex = pState->resetMenu.mSelectIndex;
 
-    if( cMenuAction == llce::gui::menu_t::action_e::select ) {
+    if( cMenuEvent == llce::gui::event_e::select ) {
         if( cMenuIndex == 0 ) {
             pState->pmid = ssn::mode::game_id;
         } else if( cMenuIndex == 1 ) {
