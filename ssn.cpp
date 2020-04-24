@@ -54,7 +54,6 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     pState->dt = 0.0;
     pState->tt = 0.0;
-    pState->ht = 0.0;
 
     pState->mid = ssn::mode::boot_id;
     pState->pmid = ssn::mode::title_id;

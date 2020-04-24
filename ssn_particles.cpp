@@ -182,7 +182,7 @@ void particulator_t::genHit( const vec2f32_t& pSource, const vec2f32_t& pDir, co
 
         mParticles.push_back( particle_t(
             particle_t::type_e::hit, // particle type
-            ssn::MAX_HIT_TIME,       // lifetime
+            ssn::HIT_DURATION,       // lifetime
             partBasisX,              // basis X
             partBasisY,              // basis Y
             partPos,                 // position
@@ -218,7 +218,7 @@ void particulator_t::genTrail( const vec2f32_t& pSource, const vec2f32_t& pDir, 
 
         mParticles.push_back( particle_t(
             particle_t::type_e::trail, // particle type
-            ssn::MAX_HIT_TIME,       // lifetime
+            ssn::HIT_DURATION,         // lifetime
             partBasisX,                // basis X
             partBasisY,                // basis Y
             partPos,                   // position

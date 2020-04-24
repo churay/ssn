@@ -32,6 +32,7 @@ constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
 /// 'ssn::mode::game' Functions  ///
 
 bool32_t game::init( ssn::state_t* pState ) {
+    pState->rt = 0.0;
     pState->ht = 0.0;
 
     const float32_t cPaddleBaseRadius = 5.0e-2f;
@@ -78,22 +79,22 @@ bool32_t game::init( ssn::state_t* pState ) {
 
 
 bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    vec2i32_t di = { 0, 0 };
-    bool32_t de = false;
+    vec2i32_t paddleInput( 0, 0 );
+    bool32_t rushInput = false;
 
     { // Input Processing //
         if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_W) ) {
-            di.y += 1;
+            paddleInput.y += 1;
         } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_S) ) {
-            di.y -= 1;
+            paddleInput.y -= 1;
         } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_A) ) {
-            di.x -= 1;
+            paddleInput.x -= 1;
         } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_D) ) {
-            di.x += 1;
+            paddleInput.x += 1;
         }
 
         if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_E) ) {
-            de = true;
+            rushInput = true;
         }
     }
 
@@ -103,16 +104,20 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
     ssn::particulator_t* const particulator = &pState->particulator;
 
     { // Game State Update //
-        pState->dt = pDT;
-        pState->tt += pDT;
-
         const bool32_t cPaddleWasRushing = paddle->mAmRushing;
 
+        // NOTE(JRC): This is handled a bit clumsily so that we recognize round
+        // ends the frame they happen instead of a frame late.
+        pState->rt += ( pState->ht <= 0.0 ) ? pDT : 0.0;
+
         if( pState->ht > 0.0 ) {
-            pState->ht = ( pState->ht < ssn::MAX_HIT_TIME ) ? pState->ht + pDT : 0.0;
+            pState->ht = ( pState->ht < ssn::HIT_DURATION ) ? pState->ht + pDT : 0.0;
+        } else if( pState->rt >= ssn::ROUND_DURATION ) {
+            // TODO(JRC): Change to scoring mode instead once it's been implemented.
+            pState->pmid = ssn::mode::reset_id;
         } else {
-            paddle->move( di.x, di.y );
-            if( de ) { paddle->rush(); }
+            paddle->move( paddleInput.x, paddleInput.y );
+            if( rushInput ) { paddle->rush(); }
 
             bounds->update( pDT );
             puck->update( pDT );
@@ -133,7 +138,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
     }
 
     if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_T) ) { // Game Scoring //
-        vec2i32_t scores = { 0, 0 };
+        vec2i32_t scores( 0, 0 );
 
         // NOTE(JRC): The source for this algorithm was derived from here:
         // http://geomalgorithms.com/a01-_area.html
@@ -206,8 +211,22 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
     const ssn::paddle_t* const paddle = &pState->paddle;
     const ssn::particulator_t* const particulator = &pState->particulator;
 
-    { // Game State Render //
+    { // Background Render //
         bounds->render();
+
+        // TODO(JRC): Improve the visualization for this information so that it
+        // isn't so easily obscured by other screen coloring.
+        char8_t timerBuffer[32];
+        std::snprintf( &timerBuffer[0], ARRAY_LEN(timerBuffer), "%05.2f",
+            glm::max(ssn::ROUND_DURATION - pState->rt, 0.0) );
+
+        color4u8_t timerColor = ssn::color::INFO;
+        timerColor.w = (uint8_t)( 0.3f * 255 );
+
+        llce::gfx::text::render( timerBuffer, &timerColor, llce::box_t(0.0f, 0.0f, 1.0f, 1.0f) );
+    }
+
+    { // Game State Render //
         puck->render();
         particulator->render();
         paddle->render();

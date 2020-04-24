@@ -20,7 +20,6 @@ struct state_t {
     // Global State //
     float64_t dt; // frame time
     float64_t tt; // total time
-    float64_t ht; // hit time
 
     mode::mode_e mid; // game mode
     mode::mode_e pmid; // pending mode
@@ -28,6 +27,9 @@ struct state_t {
     llce::rng_t rng; // random number generator
 
     // Game State //
+    float64_t rt; // round time
+    float64_t ht; // hit time
+
     bounds_t bounds;
     puck_t puck;
     paddle_t paddle;
