@@ -211,22 +211,8 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
     const ssn::paddle_t* const paddle = &pState->paddle;
     const ssn::particulator_t* const particulator = &pState->particulator;
 
-    { // Background Render //
-        bounds->render();
-
-        // TODO(JRC): Improve the visualization for this information so that it
-        // isn't so easily obscured by other screen coloring.
-        char8_t timerBuffer[32];
-        std::snprintf( &timerBuffer[0], ARRAY_LEN(timerBuffer), "%05.2f",
-            glm::max(ssn::ROUND_DURATION - pState->rt, 0.0) );
-
-        color4u8_t timerColor = ssn::color::INFO;
-        timerColor.w = (uint8_t)( 0.3f * 255 );
-
-        llce::gfx::text::render( timerBuffer, &timerColor, llce::box_t(0.0f, 0.0f, 1.0f, 1.0f) );
-    }
-
     { // Game State Render //
+        bounds->render();
         puck->render();
         particulator->render();
         paddle->render();
@@ -236,6 +222,33 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
         llce::gfx::text::render( "YOU", &ssn::color::INFO, 20.0f,
             paddle->mBBox.mPos + llce::geom::anchor( paddle->mBBox.mDims, llce::geom::anchor2D::mh ),
             llce::geom::anchor2D::ml );
+    }
+
+    { // Timer Render //
+        const static float32_t csSidePadding = 1.0e-2f;
+        const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.2f );
+        const static uint32_t csSideCodes[] = {0b01, 0b00, 0b10, 0b11};
+        const static llce::geom::anchor2D::anchor2D_e csSideAnchors[] = {
+            llce::geom::anchor2D::lh, llce::geom::anchor2D::ll, llce::geom::anchor2D::hl, llce::geom::anchor2D::hh};
+
+        const float32_t cRoundProgress = 1.0f -
+            glm::clamp( static_cast<float32_t>(pState->rt / ssn::ROUND_DURATION), 0.0f, 1.0f );
+
+        for( uint32_t sideIdx = 0; sideIdx < 4 && sideIdx * 0.25f < cRoundProgress; sideIdx++ ) {
+            const uint32_t cSideCode = csSideCodes[sideIdx];
+            const auto cSideAnchor = csSideAnchors[sideIdx];
+
+            const float32_t cSideProgress = glm::min(
+                (cRoundProgress - sideIdx * 0.25f) / 0.25f, 1.0f );
+            const vec2f32_t cSideBase(
+                ((cSideCode & 0b10) >> 1) * 1.0f,
+                ((cSideCode & 0b01) >> 0) * 1.0f );
+            const vec2f32_t cSideDims(
+                (sideIdx % 2 == 1) ? cSideProgress : csSidePadding,
+                (sideIdx % 2 == 1) ? csSidePadding : cSideProgress );
+
+            llce::gfx::box::render( llce::box_t(cSideBase, cSideDims, cSideAnchor), &csSideColor );
+        }
     }
 
     return true;
@@ -278,6 +291,19 @@ bool32_t title::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 /// 'ssn::mode::score' Functions  ///
 
 bool32_t score::init( ssn::state_t* pState ) {
+    // render 'game' for a short period of time (ideally it will pop in or something)
+    // while this render is happening, spawn a thread and calculate the score
+    // once the render is finished, proceed to the 'advanding fronts' render
+    //
+    // notes:
+    // - advancing fronts will show both team scores in a bar at the bottom of the
+    //   screen that fills in from either end
+    // - advancing fronts will just start as vertical lines
+    // - calculate the score values as aggregates so that subsequent frames need to
+    //   do less work (they can just add to the aggregate with the current marginal)
+    // - a velocity for the advancing fronts should be chosen so that an appropriate
+    //   number of cells are calculated each frame to fit in that frame's time slice
+
     // TODO(JRC): Implement this function.
     return true;
 }
