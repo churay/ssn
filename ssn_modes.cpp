@@ -227,28 +227,36 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
     { // Timer Render //
         const static float32_t csSidePadding = 1.0e-2f;
         const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.2f );
-        const static uint32_t csSideCodes[] = {0b01, 0b00, 0b10, 0b11};
-        const static llce::geom::anchor2D::anchor2D_e csSideAnchors[] = {
-            llce::geom::anchor2D::lh, llce::geom::anchor2D::ll, llce::geom::anchor2D::hl, llce::geom::anchor2D::hh};
 
-        const float32_t cRoundProgress = 1.0f -
-            glm::clamp( static_cast<float32_t>(pState->rt / ssn::ROUND_DURATION), 0.0f, 1.0f );
+        float64_t roundProgress = 1.0 - glm::min( pState->rt / ssn::ROUND_DURATION, 1.0 );
+        const float32_t cRoundProgress = static_cast<float32_t>( roundProgress );
 
-        for( uint32_t sideIdx = 0; sideIdx < 4 && sideIdx * 0.25f < cRoundProgress; sideIdx++ ) {
-            const uint32_t cSideCode = csSideCodes[sideIdx];
-            const auto cSideAnchor = csSideAnchors[sideIdx];
+        glPushAttrib( GL_CURRENT_BIT );
+        glColor4ubv( (uint8_t*)&csSideColor );
+        glPushMatrix(); {
+            mat4f32_t sideSpace( 1.0f );
+            sideSpace = glm::translate( vec3f32_t(1.0f, 1.0f, 0.0f) );
+            sideSpace *= glm::rotate( glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+            sideSpace *= glm::scale( vec3f32_t(-1.0f, 1.0f, 1.0f) );
+            glMultMatrixf( &sideSpace[0][0] );
 
-            const float32_t cSideProgress = glm::min(
-                (cRoundProgress - sideIdx * 0.25f) / 0.25f, 1.0f );
-            const vec2f32_t cSideBase(
-                ((cSideCode & 0b10) >> 1) * 1.0f,
-                ((cSideCode & 0b01) >> 0) * 1.0f );
-            const vec2f32_t cSideDims(
-                (sideIdx % 2 == 1) ? cSideProgress : csSidePadding,
-                (sideIdx % 2 == 1) ? csSidePadding : cSideProgress );
+            for( uint32_t sideIdx = 0; sideIdx < 4 && sideIdx * 0.25f < cRoundProgress; sideIdx++ ) {
+                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) );
+                // NOTE(JRC): Since the "side" coordinate system is left-handed, the
+                // rotations need to be inverted relative to expectation.
+                sideSpace *= glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+                glMultMatrixf( &sideSpace[0][0] );
 
-            llce::gfx::box::render( llce::box_t(cSideBase, cSideDims, cSideAnchor), &csSideColor );
-        }
+                const float32_t cSideProgress = glm::min( (cRoundProgress - sideIdx * 0.25f) / 0.25f, 1.0f );
+                glBegin( GL_QUADS ); {
+                    glVertex2f( 0.0f, 0.0f );
+                    glVertex2f( 0.0f, 1.0f * cSideProgress );
+                    glVertex2f( csSidePadding, glm::mix(csSidePadding, 1.0f - csSidePadding, cSideProgress) );
+                    glVertex2f( csSidePadding, csSidePadding );
+                } glEnd();
+            }
+        } glPopMatrix();
+        glPopAttrib();
     }
 
     return true;
