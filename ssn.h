@@ -20,6 +20,7 @@ struct state_t {
     // Global State //
     float64_t dt; // frame time
     float64_t tt; // total time
+    float64_t st; // state time
 
     mode::mode_e mid; // game mode
     mode::mode_e pmid; // pending mode
@@ -35,6 +36,9 @@ struct state_t {
     paddle_t paddle;
 
     particulator_t particulator;
+
+    // Scoring State //
+    float32_t scores[2];
 
     // Menu State //
     llce::gui::menu_t titleMenu;

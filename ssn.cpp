@@ -54,6 +54,7 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     pState->dt = 0.0;
     pState->tt = 0.0;
+    pState->st = 0.0;
 
     pState->mid = ssn::mode::boot_id;
     pState->pmid = ssn::mode::title_id;
@@ -81,10 +82,12 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
         if( pState->pmid < 0 ) { return false; }
         MODE_INIT_FUNS[pState->pmid]( pState );
         pState->mid = pState->pmid;
+        pState->st = 0.0;
     }
 
     pState->dt = pDT;
     pState->tt += pDT;
+    pState->st += pDT;
 
     bool32_t updateStatus = MODE_UPDATE_FUNS[pState->mid]( pState, pInput, pDT );
     return updateStatus;

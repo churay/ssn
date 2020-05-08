@@ -24,10 +24,72 @@ namespace mode {
 
 /// Helper Structures ///
 
+typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t );
+typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
+
+constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 1.0 };
+
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
 constexpr static char8_t RESET_ITEM_TEXT[][8] = { "REPLAY", "EXIT  " };
 constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
+
+/// Helper Functions ///
+
+void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
+    const ssn::bounds_t* const bounds = &pState->bounds;
+    const ssn::puck_t* const puck = &pState->puck;
+    const ssn::paddle_t* const paddle = &pState->paddle;
+    const ssn::particulator_t* const particulator = &pState->particulator;
+
+    { // Game State Render //
+        bounds->render();
+        puck->render();
+        particulator->render();
+        paddle->render();
+    }
+
+    { // Annotation Render //
+        llce::gfx::text::render( "YOU", &ssn::color::INFO, 20.0f,
+            paddle->mBBox.mPos + llce::geom::anchor( paddle->mBBox.mDims, llce::geom::anchor2D::mh ),
+            llce::geom::anchor2D::ml );
+    }
+
+    { // Timer Render //
+        const static float32_t csSidePadding = 1.0e-2f;
+        const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.2f );
+
+        float64_t roundProgress = 1.0 - glm::min( pState->rt / ssn::ROUND_DURATION, 1.0 );
+        const float32_t cRoundProgress = static_cast<float32_t>( roundProgress );
+
+        glPushAttrib( GL_CURRENT_BIT );
+        glColor4ubv( (uint8_t*)&csSideColor );
+        glPushMatrix(); {
+            mat4f32_t sideSpace( 1.0f );
+            sideSpace = glm::translate( vec3f32_t(1.0f, 1.0f, 0.0f) );
+            sideSpace *= glm::rotate( glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+            sideSpace *= glm::scale( vec3f32_t(-1.0f, 1.0f, 1.0f) );
+            glMultMatrixf( &sideSpace[0][0] );
+
+            for( uint32_t sideIdx = 0; sideIdx < 4 && sideIdx * 0.25f < cRoundProgress; sideIdx++ ) {
+                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) );
+                // NOTE(JRC): Since the "side" coordinate system is left-handed, the
+                // rotations need to be inverted relative to expectation.
+                sideSpace *= glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+                glMultMatrixf( &sideSpace[0][0] );
+
+                const float32_t cSideProgress = glm::min( (cRoundProgress - sideIdx * 0.25f) / 0.25f, 1.0f );
+                glBegin( GL_QUADS ); {
+                    glVertex2f( 0.0f, 0.0f );
+                    glVertex2f( 0.0f, 1.0f * cSideProgress );
+                    glVertex2f( csSidePadding, glm::mix(csSidePadding, 1.0f - csSidePadding, cSideProgress) );
+                    glVertex2f( csSidePadding, csSidePadding );
+                } glEnd();
+            }
+        } glPopMatrix();
+        glPopAttrib();
+    }
+}
 
 /// 'ssn::mode::game' Functions  ///
 
@@ -113,8 +175,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
         if( pState->ht > 0.0 ) {
             pState->ht = ( pState->ht < ssn::HIT_DURATION ) ? pState->ht + pDT : 0.0;
         } else if( pState->rt >= ssn::ROUND_DURATION ) {
-            // TODO(JRC): Change to scoring mode instead once it's been implemented.
-            pState->pmid = ssn::mode::reset_id;
+            pState->pmid = ssn::mode::score_id;
         } else {
             paddle->move( paddleInput.x, paddleInput.y );
             if( rushInput ) { paddle->rush(); }
@@ -137,68 +198,9 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
         particulator->update( pDT );
     }
 
+    // TODO(JRC): Remove this shortcut function once debugging is over.
     if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_T) ) { // Game Scoring //
-        vec2i32_t scores( 0, 0 );
-
-        // NOTE(JRC): The source for this algorithm was derived from here:
-        // http://geomalgorithms.com/a01-_area.html
-        const static auto csTriDeterminant = []
-                ( const vec2f32_t& pP0, const vec2f32_t& pP1, const vec2f32_t& pP2 ) {
-            return ( (pP1.x - pP0.x) * (pP2.y - pP0.y) - (pP2.x - pP0.x) * (pP1.y - pP0.y) );
-        };
-
-        // NOTE(JRC): The source for this algorithm was derived from here:
-        // http://geomalgorithms.com/a03-_inclusion.html
-        const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
-            int32_t windCount = 0;
-
-            for( uint32_t cornerIdx = 0; cornerIdx < bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
-                const vec2f32_t& cornerStart = pArea[cornerIdx];
-                const vec2f32_t& cornerEnd = pArea[(cornerIdx + 1) % bounds_t::AREA_CORNER_COUNT];
-
-                // if the corner edge intersects the point x-axis ray upward...
-                if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
-                    // and the point is strictly left of the edge (s->e->p is ccw)
-                    if( csTriDeterminant(cornerStart, cornerEnd, pPoint) > 0.0f ) {
-                        windCount++;
-                    }
-                // if the corner edge intersects the point x-axis ray downward...
-                } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
-                    // and the point is strictly right of the edge (s->e->p is cw)
-                    if( csTriDeterminant(cornerStart, cornerEnd, pPoint) < 0.0f ) {
-                        windCount--;
-                    }
-                }
-            }
-
-            return windCount != 0;
-        };
-
-        // TODO(JRC): Make this value more properly informed by the current
-        // aspect ratio being used by the simulation.
-        const vec2u32_t cPixelRes( 512, 512 );
-        for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
-            for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
-                vec2f32_t pixelPos(
-                    bounds->mBBox.xbounds().interp( (xPixelIdx + 0.5f) / cPixelRes.x ),
-                    bounds->mBBox.ybounds().interp( (yPixelIdx + 0.5f) / cPixelRes.y ) );
-
-                for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
-                    vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * bounds_t::AREA_CORNER_COUNT];
-                    if( csPointInArea(pixelPos, areaPoss) ) {
-                        (*VECTOR_AT(scores, bounds->mAreaTeams[areaIdx]))++;
-                        break;
-                    }
-                }
-            }
-        }
-
-        const uint32_t cPixelTotal = cPixelRes.x * cPixelRes.y;
-        std::cout << "Scores:" << std::endl;
-        std::cout << "  Left: " << (*VECTOR_AT(scores, ssn::team::left)) / ( cPixelTotal + 0.0f ) << std::endl;
-        std::cout << "  Right: " << (*VECTOR_AT(scores, ssn::team::right)) / ( cPixelTotal + 0.0f ) << std::endl;
-
-        pState->pmid = ssn::mode::reset_id;
+        pState->pmid = ssn::mode::score_id;
     }
 
     return true;
@@ -206,58 +208,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
 
 
 bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    const ssn::bounds_t* const bounds = &pState->bounds;
-    const ssn::puck_t* const puck = &pState->puck;
-    const ssn::paddle_t* const paddle = &pState->paddle;
-    const ssn::particulator_t* const particulator = &pState->particulator;
-
-    { // Game State Render //
-        bounds->render();
-        puck->render();
-        particulator->render();
-        paddle->render();
-    }
-
-    { // Annotation Render //
-        llce::gfx::text::render( "YOU", &ssn::color::INFO, 20.0f,
-            paddle->mBBox.mPos + llce::geom::anchor( paddle->mBBox.mDims, llce::geom::anchor2D::mh ),
-            llce::geom::anchor2D::ml );
-    }
-
-    { // Timer Render //
-        const static float32_t csSidePadding = 1.0e-2f;
-        const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.2f );
-
-        float64_t roundProgress = 1.0 - glm::min( pState->rt / ssn::ROUND_DURATION, 1.0 );
-        const float32_t cRoundProgress = static_cast<float32_t>( roundProgress );
-
-        glPushAttrib( GL_CURRENT_BIT );
-        glColor4ubv( (uint8_t*)&csSideColor );
-        glPushMatrix(); {
-            mat4f32_t sideSpace( 1.0f );
-            sideSpace = glm::translate( vec3f32_t(1.0f, 1.0f, 0.0f) );
-            sideSpace *= glm::rotate( glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
-            sideSpace *= glm::scale( vec3f32_t(-1.0f, 1.0f, 1.0f) );
-            glMultMatrixf( &sideSpace[0][0] );
-
-            for( uint32_t sideIdx = 0; sideIdx < 4 && sideIdx * 0.25f < cRoundProgress; sideIdx++ ) {
-                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) );
-                // NOTE(JRC): Since the "side" coordinate system is left-handed, the
-                // rotations need to be inverted relative to expectation.
-                sideSpace *= glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
-                glMultMatrixf( &sideSpace[0][0] );
-
-                const float32_t cSideProgress = glm::min( (cRoundProgress - sideIdx * 0.25f) / 0.25f, 1.0f );
-                glBegin( GL_QUADS ); {
-                    glVertex2f( 0.0f, 0.0f );
-                    glVertex2f( 0.0f, 1.0f * cSideProgress );
-                    glVertex2f( csSidePadding, glm::mix(csSidePadding, 1.0f - csSidePadding, cSideProgress) );
-                    glVertex2f( csSidePadding, csSidePadding );
-                } glEnd();
-            }
-        } glPopMatrix();
-        glPopAttrib();
-    }
+    render_gameboard( pState, pInput, pOutput );
 
     return true;
 }
@@ -299,32 +250,153 @@ bool32_t title::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 /// 'ssn::mode::score' Functions  ///
 
 bool32_t score::init( ssn::state_t* pState ) {
-    // render 'game' for a short period of time (ideally it will pop in or something)
-    // while this render is happening, spawn a thread and calculate the score
-    // once the render is finished, proceed to the 'advanding fronts' render
-    //
-    // notes:
-    // - advancing fronts will show both team scores in a bar at the bottom of the
-    //   screen that fills in from either end
-    // - advancing fronts will just start as vertical lines
-    // - calculate the score values as aggregates so that subsequent frames need to
-    //   do less work (they can just add to the aggregate with the current marginal)
-    // - a velocity for the advancing fronts should be chosen so that an appropriate
-    //   number of cells are calculated each frame to fit in that frame's time slice
+    pState->scores[ssn::team::left] = pState->scores[ssn::team::right] = -1.0f;
 
-    // TODO(JRC): Implement this function.
     return true;
 }
 
 
 bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    // TODO(JRC): Implement this function.
-    return true;
+    const static auto csUpdateIntro = []
+            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pPT ) -> bool32_t  {
+        if( pPT > SCORE_PHASE_DURATIONS[0] / 10.0 && pState->scores[0] < 0.0f ) {
+            int32_t scores[2] = { 0, 0 };
+
+            // NOTE(JRC): The source for this algorithm was derived from here:
+            // http://geomalgorithms.com/a01-_area.html
+            const static auto csTriDeterminant = []
+                    ( const vec2f32_t& pP0, const vec2f32_t& pP1, const vec2f32_t& pP2 ) {
+                return ( (pP1.x - pP0.x) * (pP2.y - pP0.y) - (pP2.x - pP0.x) * (pP1.y - pP0.y) );
+            };
+
+            // NOTE(JRC): The source for this algorithm was derived from here:
+            // http://geomalgorithms.com/a03-_inclusion.html
+            const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
+                int32_t windCount = 0;
+
+                for( uint32_t cornerIdx = 0; cornerIdx < bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
+                    const vec2f32_t& cornerStart = pArea[cornerIdx];
+                    const vec2f32_t& cornerEnd = pArea[(cornerIdx + 1) % bounds_t::AREA_CORNER_COUNT];
+
+                    // if the corner edge intersects the point x-axis ray upward...
+                    if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
+                        // and the point is strictly left of the edge (s->e->p is ccw)
+                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) > 0.0f ) {
+                            windCount++;
+                        }
+                    // if the corner edge intersects the point x-axis ray downward...
+                    } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
+                        // and the point is strictly right of the edge (s->e->p is cw)
+                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) < 0.0f ) {
+                            windCount--;
+                        }
+                    }
+                }
+
+                return windCount != 0;
+            };
+
+            // TODO(JRC): Make this value more properly informed by the current
+            // aspect ratio being used by the simulation.
+            ssn::bounds_t* const bounds = &pState->bounds;
+            const vec2u32_t cPixelRes( 512, 512 );
+            for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
+                for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
+                    vec2f32_t pixelPos(
+                        bounds->mBBox.xbounds().interp( (xPixelIdx + 0.5f) / cPixelRes.x ),
+                        bounds->mBBox.ybounds().interp( (yPixelIdx + 0.5f) / cPixelRes.y ) );
+
+                    for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
+                        vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * bounds_t::AREA_CORNER_COUNT];
+                        if( csPointInArea(pixelPos, areaPoss) ) {
+                            scores[bounds->mAreaTeams[areaIdx]]++;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const uint32_t cPixelTotal = cPixelRes.x * cPixelRes.y;
+            for( uint32_t teamIdx = ssn::team::left; teamIdx <= ssn::team::right; teamIdx++ ) {
+                pState->scores[teamIdx] = scores[teamIdx] / ( cPixelTotal + 0.0f );
+            }
+        }
+
+        return true;
+    };
+    const static auto csUpdateTally = []
+            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pPT ) -> bool32_t  {
+        std::cout << "Scores:" << std::endl;
+        std::cout << "  Left: " << pState->scores[ssn::team::left] << std::endl;
+        std::cout << "  Right: " << pState->scores[ssn::team::right] << std::endl;
+
+        return true;
+    };
+    const static update_f csUpdateFuns[] = { csUpdateIntro, csUpdateTally };
+
+    bool32_t phaseResult = true;
+
+    float64_t phaseMin = 0.0, phaseMax = 0.0;
+    for( uint32_t phaseIdx = 0; phaseIdx < ARRAY_LEN(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
+        phaseMax = phaseMin + SCORE_PHASE_DURATIONS[phaseIdx];
+        if( phaseMin <= pState->st && pState->st < phaseMax ) {
+            phaseResult = csUpdateFuns[phaseIdx]( pState, pInput, pState->st - phaseMin );
+        }
+        phaseMin = phaseMax;
+    }
+
+    if( pState->st >= phaseMax ) {
+        pState->pmid = ssn::mode::reset_id;
+    }
+
+    return phaseResult;
 }
 
+
 bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    // TODO(JRC): Implement this function.
-    return true;
+    const static auto csRenderIntro = []
+            ( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) -> bool32_t {
+        const float32_t cHeaderPadding = 0.05f;
+        const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
+        const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
+        llce::gfx::text::render( "GAME!", &ssn::color::INFO, llce::box_t(cHeaderPos, cHeaderDims) );
+
+        return true;
+    };
+    const static auto csRenderTally = []
+            ( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) -> bool32_t  {
+        const float32_t cHeaderPadding = 0.05f;
+        const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
+        const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
+        llce::gfx::text::render( "SCORES!", &ssn::color::INFO, llce::box_t(cHeaderPos, cHeaderDims) );
+
+        // notes:
+        // - advancing fronts will show both team scores in a bar at the bottom of the
+        //   screen that fills in from either end
+        // - advancing fronts will just start as vertical lines
+        // - calculate the score values as aggregates so that subsequent frames need to
+        //   do less work (they can just add to the aggregate with the current marginal)
+        // - a velocity for the advancing fronts should be chosen so that an appropriate
+        //   number of cells are calculated each frame to fit in that frame's time slice
+
+        return true;
+    };
+    const static render_f csRenderFuns[] = { csRenderIntro, csRenderTally };
+
+    bool32_t phaseResult = true;
+
+    render_gameboard( pState, pInput, pOutput );
+
+    float64_t phaseMin = 0.0, phaseMax = 0.0;
+    for( uint32_t phaseIdx = 0; phaseIdx < ARRAY_LEN(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
+        phaseMax = phaseMin + SCORE_PHASE_DURATIONS[phaseIdx];
+        if( phaseMin <= pState->st && pState->st < phaseMax ) {
+            phaseResult = csRenderFuns[phaseIdx]( pState, pInput, pOutput );
+        }
+        phaseMin = phaseMax;
+    }
+
+    return phaseResult;
 }
 
 /// 'ssn::mode::reset' Functions  ///
