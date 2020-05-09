@@ -15,6 +15,7 @@ const extern color4u8_t INFO;
 const extern color4u8_t BACKGROUND;
 const extern color4u8_t FOREGROUND;
 const extern color4u8_t INTERFACE;
+const extern color4u8_t BORDER;
 
 const extern color4u8_t TEAM[3];
 

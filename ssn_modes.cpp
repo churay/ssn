@@ -57,7 +57,7 @@ void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, c
 
     { // Timer Render //
         const static float32_t csSidePadding = 1.0e-2f;
-        const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.2f );
+        const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.8f );
 
         float64_t roundProgress = 1.0 - glm::min( pState->rt / ssn::ROUND_DURATION, 1.0 );
         const float32_t cRoundProgress = static_cast<float32_t>( roundProgress );
@@ -260,65 +260,33 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
     const static auto csUpdateIntro = []
             ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pPT ) -> bool32_t  {
         if( pPT > SCORE_PHASE_DURATIONS[0] / 10.0 && pState->scores[0] < 0.0f ) {
-            int32_t scores[2] = { 0, 0 };
-
-            // NOTE(JRC): The source for this algorithm was derived from here:
-            // http://geomalgorithms.com/a01-_area.html
-            const static auto csTriDeterminant = []
-                    ( const vec2f32_t& pP0, const vec2f32_t& pP1, const vec2f32_t& pP2 ) {
-                return ( (pP1.x - pP0.x) * (pP2.y - pP0.y) - (pP2.x - pP0.x) * (pP1.y - pP0.y) );
-            };
-
-            // NOTE(JRC): The source for this algorithm was derived from here:
-            // http://geomalgorithms.com/a03-_inclusion.html
-            const static auto csPointInArea = [] ( const vec2f32_t& pPoint,  const vec2f32_t* pArea ) {
-                int32_t windCount = 0;
-
-                for( uint32_t cornerIdx = 0; cornerIdx < bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
-                    const vec2f32_t& cornerStart = pArea[cornerIdx];
-                    const vec2f32_t& cornerEnd = pArea[(cornerIdx + 1) % bounds_t::AREA_CORNER_COUNT];
-
-                    // if the corner edge intersects the point x-axis ray upward...
-                    if( cornerStart.y < pPoint.y && cornerEnd.y > pPoint.y ) {
-                        // and the point is strictly left of the edge (s->e->p is ccw)
-                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) > 0.0f ) {
-                            windCount++;
-                        }
-                    // if the corner edge intersects the point x-axis ray downward...
-                    } else if( cornerStart.y > pPoint.y && cornerEnd.y < pPoint.y ) {
-                        // and the point is strictly right of the edge (s->e->p is cw)
-                        if( csTriDeterminant(cornerStart, cornerEnd, pPoint) < 0.0f ) {
-                            windCount--;
-                        }
-                    }
-                }
-
-                return windCount != 0;
-            };
-
             // TODO(JRC): Make this value more properly informed by the current
             // aspect ratio being used by the simulation.
+            const static vec2u32_t csPixelRes( 512, 512 );
+            const static uint32_t csPixelTotal = csPixelRes.x * csPixelRes.y;
+
             ssn::bounds_t* const bounds = &pState->bounds;
-            const vec2u32_t cPixelRes( 512, 512 );
-            for( uint32_t yPixelIdx = 0; yPixelIdx < cPixelRes.y; yPixelIdx++ ) {
-                for( uint32_t xPixelIdx = 0; xPixelIdx < cPixelRes.x; xPixelIdx++ ) {
+            const uint32_t cAreaLength = bounds_t::AREA_CORNER_COUNT;
+            const llce::interval_t& xbounds = bounds->mBBox.xbounds();
+            const llce::interval_t& ybounds = bounds->mBBox.ybounds();
+
+            int32_t scores[2] = { 0, 0 };
+            for( uint32_t yPixelIdx = 0; yPixelIdx < csPixelRes.y; yPixelIdx++ ) {
+                for( uint32_t xPixelIdx = 0; xPixelIdx < csPixelRes.x; xPixelIdx++ ) {
                     vec2f32_t pixelPos(
-                        bounds->mBBox.xbounds().interp( (xPixelIdx + 0.5f) / cPixelRes.x ),
-                        bounds->mBBox.ybounds().interp( (yPixelIdx + 0.5f) / cPixelRes.y ) );
+                        xbounds.interp((xPixelIdx + 0.5f) / csPixelRes.x),
+                        ybounds.interp((yPixelIdx + 0.5f) / csPixelRes.y) );
 
                     for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
-                        vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * bounds_t::AREA_CORNER_COUNT];
-                        if( csPointInArea(pixelPos, areaPoss) ) {
+                        vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * cAreaLength];
+                        if( llce::geom::contains(areaPoss, cAreaLength, pixelPos) ) {
                             scores[bounds->mAreaTeams[areaIdx]]++;
                             break;
                         }
                     }
                 }
-            }
-
-            const uint32_t cPixelTotal = cPixelRes.x * cPixelRes.y;
-            for( uint32_t teamIdx = ssn::team::left; teamIdx <= ssn::team::right; teamIdx++ ) {
-                pState->scores[teamIdx] = scores[teamIdx] / ( cPixelTotal + 0.0f );
+            } for( uint32_t teamIdx = ssn::team::left; teamIdx <= ssn::team::right; teamIdx++ ) {
+                pState->scores[teamIdx] = scores[teamIdx] / ( csPixelTotal + 0.0f );
             }
         }
 
