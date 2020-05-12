@@ -8,6 +8,7 @@ namespace color {
 
 const color4u8_t ERROR = { 0xff, 0x00, 0x00, 0xff };
 const color4u8_t INFO = { 0xff, 0xff, 0xff, 0xff };
+const color4u8_t INFOL = { 0xff, 0xff, 0xff, 0xaa };
 
 const color4u8_t BACKGROUND = { 0x00, 0x2b, 0x36, 0xff };
 const color4u8_t FOREGROUND = static_cast<uint8_t>( 2 ) * ssn::color::BACKGROUND;

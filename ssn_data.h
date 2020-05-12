@@ -11,6 +11,7 @@ namespace color {
 
 const extern color4u8_t ERROR;
 const extern color4u8_t INFO;
+const extern color4u8_t INFOL;
 
 const extern color4u8_t BACKGROUND;
 const extern color4u8_t FOREGROUND;

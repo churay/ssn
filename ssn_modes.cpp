@@ -24,10 +24,10 @@ namespace mode {
 
 /// Helper Structures ///
 
-typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t );
+typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t, const float64_t );
 typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
 
-constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 1.0 };
+constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 3.0 };
 
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
@@ -57,13 +57,12 @@ void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, c
 
     { // Timer Render //
         const static float32_t csSidePadding = 1.0e-2f;
-        const static color4u8_t csSideColor = llce::gfx::color::transparentize( ssn::color::INFO, 0.8f );
 
         float64_t roundProgress = 1.0 - glm::min( pState->rt / ssn::ROUND_DURATION, 1.0 );
         const float32_t cRoundProgress = static_cast<float32_t>( roundProgress );
 
         glPushAttrib( GL_CURRENT_BIT );
-        glColor4ubv( (uint8_t*)&csSideColor );
+        glColor4ubv( (uint8_t*)&ssn::color::INFOL );
         glPushMatrix(); {
             mat4f32_t sideSpace( 1.0f );
             sideSpace = glm::translate( vec3f32_t(1.0f, 1.0f, 0.0f) );
@@ -250,7 +249,9 @@ bool32_t title::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 /// 'ssn::mode::score' Functions  ///
 
 bool32_t score::init( ssn::state_t* pState ) {
-    pState->scores[ssn::team::left] = pState->scores[ssn::team::right] = -1.0f;
+    std::memset( &pState->scoreTotals[0], 0, sizeof(pState->scoreTotals) );
+    std::memset( &pState->scoreSamples[0], 0, sizeof(pState->scoreSamples) );
+    pState->scoreTallied = false;
 
     return true;
 }
@@ -258,45 +259,77 @@ bool32_t score::init( ssn::state_t* pState ) {
 
 bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
     const static auto csUpdateIntro = []
-            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pPT ) -> bool32_t  {
-        if( pPT > SCORE_PHASE_DURATIONS[0] / 10.0 && pState->scores[0] < 0.0f ) {
-            // TODO(JRC): Make this value more properly informed by the current
-            // aspect ratio being used by the simulation.
-            const static vec2u32_t csPixelRes( 512, 512 );
-            const static uint32_t csPixelTotal = csPixelRes.x * csPixelRes.y;
-
+            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT, const float64_t pPT ) -> bool32_t  {
+        if( pPT > SCORE_PHASE_DURATIONS[0] / 10.0 && !pState->scoreTallied ) {
             ssn::bounds_t* const bounds = &pState->bounds;
             const uint32_t cAreaLength = bounds_t::AREA_CORNER_COUNT;
-            const llce::interval_t& xbounds = bounds->mBBox.xbounds();
-            const llce::interval_t& ybounds = bounds->mBBox.ybounds();
+            const llce::interval_t xbounds = bounds->mBBox.xbounds();
+            const llce::interval_t ybounds = bounds->mBBox.ybounds();
 
-            int32_t scores[2] = { 0, 0 };
-            for( uint32_t yPixelIdx = 0; yPixelIdx < csPixelRes.y; yPixelIdx++ ) {
-                for( uint32_t xPixelIdx = 0; xPixelIdx < csPixelRes.x; xPixelIdx++ ) {
-                    vec2f32_t pixelPos(
-                        xbounds.interp((xPixelIdx + 0.5f) / csPixelRes.x),
-                        ybounds.interp((yPixelIdx + 0.5f) / csPixelRes.y) );
+            bit8_t* scores = &pState->scoreSamples[0];
+            for( uint32_t yIdx = 0, sIdx = 0; yIdx < SCORE_SAMPLE_RES.y; yIdx++ ) {
+                for( uint32_t xIdx = 0; xIdx < SCORE_SAMPLE_RES.x; xIdx++, sIdx++ ) {
+                    uint32_t sampleIdx = sIdx / SCORE_SAMPLES_PER_BYTE;
+                    uint32_t sampleOffset = sIdx % SCORE_SAMPLES_PER_BYTE;
+                    vec2f32_t samplePos(
+                        xbounds.interp((xIdx + 0.5f) / SCORE_SAMPLE_RES.x),
+                        ybounds.interp((yIdx + 0.5f) / SCORE_SAMPLE_RES.y) );
 
                     for( uint32_t areaIdx = bounds->mAreaCount; areaIdx-- > 0; ) {
                         vec2f32_t* areaPoss = &bounds->mAreaCorners[areaIdx * cAreaLength];
-                        if( llce::geom::contains(areaPoss, cAreaLength, pixelPos) ) {
-                            scores[bounds->mAreaTeams[areaIdx]]++;
+                        uint8_t areaTeam = bounds->mAreaTeams[areaIdx];
+                        if( llce::geom::contains(areaPoss, cAreaLength, samplePos) ) {
+                            scores[sampleIdx] |= ( 1 << areaTeam ) << sampleOffset;
                             break;
                         }
                     }
                 }
-            } for( uint32_t teamIdx = ssn::team::left; teamIdx <= ssn::team::right; teamIdx++ ) {
-                pState->scores[teamIdx] = scores[teamIdx] / ( csPixelTotal + 0.0f );
             }
+
+            pState->scoreTallied = true;
         }
 
         return true;
     };
     const static auto csUpdateTally = []
-            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pPT ) -> bool32_t  {
-        std::cout << "Scores:" << std::endl;
-        std::cout << "  Left: " << pState->scores[ssn::team::left] << std::endl;
-        std::cout << "  Right: " << pState->scores[ssn::team::right] << std::endl;
+            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT, const float64_t pPT ) -> bool32_t  {
+        const static float64_t csTallyVelocity = 0.5 / SCORE_PHASE_DURATIONS[1];
+        const static float64_t csTallyDX = 1.0 / ssn::SCORE_SAMPLE_RES.x;
+        const static float64_t csTallyDY = 1.0 / ssn::SCORE_SAMPLE_RES.y;
+        const static float64_t csTallyDA = csTallyDX * csTallyDY;
+
+        const float64_t cPrevBasePos = csTallyVelocity *
+            glm::max( (pPT - pDT) / SCORE_PHASE_DURATIONS[1], 0.0 );
+        const float64_t cCurrBasePos = csTallyVelocity *
+            glm::min( pPT / SCORE_PHASE_DURATIONS[1], 1.0 );
+
+        // TODO(JRC): Verify that the last row on each front isn't getting skipped
+        // due to the phase code advancing before its last call to this function.
+        // TODO(JRC): Ensure that the first row for each front isn't getting skipped
+        // either (it must be currently since no update will pass through it.
+        for( uint32_t tallyIdx = 0; tallyIdx < 2; tallyIdx++ ) {
+            float64_t prevTallyPos = tallyIdx ? cPrevBasePos : 1.0f - cPrevBasePos;
+            float64_t currTallyPos = tallyIdx ? cCurrBasePos : 1.0f - cCurrBasePos;
+            const float64_t cTallyMin = glm::min( prevTallyPos, currTallyPos );
+            const float64_t cTallyMax = glm::max( prevTallyPos, currTallyPos );
+
+            const uint32_t cSampleMinIdx = glm::ceil( cTallyMin / csTallyDX );
+            const uint32_t cSampleMaxIdx = glm::floor( cTallyMax / csTallyDX );
+            for( uint32_t xIdx = cSampleMinIdx; xIdx <= cSampleMaxIdx; xIdx++ ) {
+                for( uint32_t yIdx = 0; yIdx < SCORE_SAMPLE_RES.y; yIdx++ ) {
+                    uint32_t sIdx = yIdx * SCORE_SAMPLE_RES.x + xIdx;
+                    uint32_t sampleIdx = sIdx / SCORE_SAMPLES_PER_BYTE;
+                    uint32_t sampleOffset = sIdx % SCORE_SAMPLES_PER_BYTE;
+
+                    uint8_t sampleData = ( pState->scoreSamples[sampleIdx] >> sampleOffset ) & 0b11;
+                    for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+                        if( sampleData & (1 << team) ) {
+                            pState->scoreTotals[team] += csTallyDA;
+                        }
+                    }
+                }
+            }
+        }
 
         return true;
     };
@@ -308,7 +341,7 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
     for( uint32_t phaseIdx = 0; phaseIdx < ARRAY_LEN(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
         phaseMax = phaseMin + SCORE_PHASE_DURATIONS[phaseIdx];
         if( phaseMin <= pState->st && pState->st < phaseMax ) {
-            phaseResult = csUpdateFuns[phaseIdx]( pState, pInput, pState->st - phaseMin );
+            phaseResult = csUpdateFuns[phaseIdx]( pState, pInput, pDT, pState->st - phaseMin );
         }
         phaseMin = phaseMax;
     }
@@ -324,10 +357,12 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
     const static auto csRenderIntro = []
             ( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) -> bool32_t {
-        const float32_t cHeaderPadding = 0.05f;
-        const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
-        const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
-        llce::gfx::text::render( "GAME!", &ssn::color::INFO, llce::box_t(cHeaderPos, cHeaderDims) );
+        const static float32_t csTextPadding = 5.0e-2f;
+        const static vec2f32_t csTextPos( 0.5f, 0.5f );
+        const static vec2f32_t csTextDims( 1.0f - 2.0f * csTextPadding, 1.0f - 2.0f * csTextPadding );
+
+        llce::gfx::text::render( "GAME!", &ssn::color::INFOL,
+            llce::box_t(csTextPos, csTextDims, llce::geom::anchor2D::mm) );
 
         return true;
     };
@@ -336,16 +371,16 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
         const float32_t cHeaderPadding = 0.05f;
         const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
         const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
-        llce::gfx::text::render( "SCORES!", &ssn::color::INFO, llce::box_t(cHeaderPos, cHeaderDims) );
 
-        // notes:
-        // - advancing fronts will show both team scores in a bar at the bottom of the
-        //   screen that fills in from either end
-        // - advancing fronts will just start as vertical lines
-        // - calculate the score values as aggregates so that subsequent frames need to
-        //   do less work (they can just add to the aggregate with the current marginal)
-        // - a velocity for the advancing fronts should be chosen so that an appropriate
-        //   number of cells are calculated each frame to fit in that frame's time slice
+        llce::gfx::text::render( "SCORES!", &ssn::color::INFOL,
+            llce::box_t(cHeaderPos, cHeaderDims) );
+
+        // TODO(JRC): Render the line representing the current location of
+        // the each tallying front.
+        // TODO(JRC): Render a status bar that starts on either end for each team.
+        std::cout << "Scores:" << std::endl;
+        std::cout << "  Left: " << pState->scoreTotals[ssn::team::left] << std::endl;
+        std::cout << "  Right: " << pState->scoreTotals[ssn::team::right] << std::endl;
 
         return true;
     };

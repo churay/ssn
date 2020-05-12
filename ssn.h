@@ -38,7 +38,9 @@ struct state_t {
     particulator_t particulator;
 
     // Scoring State //
-    float32_t scores[2];
+    float32_t scoreTotals[2];
+    bit8_t scoreSamples[SCORE_SAMPLES_BYTES];
+    bool32_t scoreTallied;
 
     // Menu State //
     llce::gui::menu_t titleMenu;
