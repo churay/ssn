@@ -27,7 +27,7 @@ namespace mode {
 typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t, const float64_t );
 typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
 
-constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 3.0 };
+constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 1.0 };
 
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
@@ -123,6 +123,12 @@ bool32_t game::init( ssn::state_t* pState ) {
     //     const ssn::team::team_e cTestTeams[] = {
     //         ssn::team::right,   // r score: 0.25
     //         ssn::team::left };  // l score: 0.5
+    //     // const vec2f32_t cTestAreas[2][3] = {
+    //     //     {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}},
+    //     //     {{0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}} };
+    //     // const ssn::team::team_e cTestTeams[] = {
+    //     //     ssn::team::left,   // l score: 0.5
+    //     //     ssn::team::left }; // l score: 0.5
     //     const uint32_t cTestAreaCount = ARRAY_LEN( cTestAreas );
     //     for( uint32_t areaIdx = 0; areaIdx < cTestAreaCount; areaIdx++ ) {
     //         testEntity.change( cTestTeams[areaIdx] );
@@ -270,7 +276,7 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
             for( uint32_t yIdx = 0, sIdx = 0; yIdx < SCORE_SAMPLE_RES.y; yIdx++ ) {
                 for( uint32_t xIdx = 0; xIdx < SCORE_SAMPLE_RES.x; xIdx++, sIdx++ ) {
                     uint32_t sampleIdx = sIdx / SCORE_SAMPLES_PER_BYTE;
-                    uint32_t sampleOffset = sIdx % SCORE_SAMPLES_PER_BYTE;
+                    uint32_t sampleOffset = SCORE_SAMPLE_BITS * ( sIdx % SCORE_SAMPLES_PER_BYTE );
                     vec2f32_t samplePos(
                         xbounds.interp((xIdx + 0.5f) / SCORE_SAMPLE_RES.x),
                         ybounds.interp((yIdx + 0.5f) / SCORE_SAMPLE_RES.y) );
@@ -303,23 +309,26 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
         const float64_t cCurrBasePos = csTallyVelocity *
             glm::min( pPT / SCORE_PHASE_DURATIONS[1], 1.0 );
 
-        // TODO(JRC): Verify that the last row on each front isn't getting skipped
-        // due to the phase code advancing before its last call to this function.
-        // TODO(JRC): Ensure that the first row for each front isn't getting skipped
-        // either (it must be currently since no update will pass through it.
         for( uint32_t tallyIdx = 0; tallyIdx < 2; tallyIdx++ ) {
-            float64_t prevTallyPos = tallyIdx ? cPrevBasePos : 1.0f - cPrevBasePos;
-            float64_t currTallyPos = tallyIdx ? cCurrBasePos : 1.0f - cCurrBasePos;
+            // NOTE(JRC): The initial offsets effectively make the tally fronts
+            // count a sample column when it reaches its center rather than either
+            // end, which simplifies the process by avoiding corner cases.
+            float64_t prevTallyPos = -csTallyDX / 2.0 +
+                ( tallyIdx ? 1.0 - cPrevBasePos : cPrevBasePos );
+            float64_t currTallyPos = -csTallyDX / 2.0 +
+                ( tallyIdx ? 1.0 - cCurrBasePos : cCurrBasePos );
             const float64_t cTallyMin = glm::min( prevTallyPos, currTallyPos );
             const float64_t cTallyMax = glm::max( prevTallyPos, currTallyPos );
 
-            const uint32_t cSampleMinIdx = glm::ceil( cTallyMin / csTallyDX );
-            const uint32_t cSampleMaxIdx = glm::floor( cTallyMax / csTallyDX );
-            for( uint32_t xIdx = cSampleMinIdx; xIdx <= cSampleMaxIdx; xIdx++ ) {
-                for( uint32_t yIdx = 0; yIdx < SCORE_SAMPLE_RES.y; yIdx++ ) {
+            const int32_t cSampleMinIdx = glm::ceil( cTallyMin / csTallyDX );
+            const int32_t cSampleMaxIdx = glm::floor( cTallyMax / csTallyDX );
+            for( int32_t xIdx = cSampleMinIdx;
+                    xIdx <= cSampleMaxIdx && xIdx >= 0 && xIdx < SCORE_SAMPLE_RES.x;
+                    xIdx++ ) {
+                for( int32_t yIdx = 0; yIdx < SCORE_SAMPLE_RES.y; yIdx++ ) {
                     uint32_t sIdx = yIdx * SCORE_SAMPLE_RES.x + xIdx;
                     uint32_t sampleIdx = sIdx / SCORE_SAMPLES_PER_BYTE;
-                    uint32_t sampleOffset = sIdx % SCORE_SAMPLES_PER_BYTE;
+                    uint32_t sampleOffset = SCORE_SAMPLE_BITS * ( sIdx % SCORE_SAMPLES_PER_BYTE );
 
                     uint8_t sampleData = ( pState->scoreSamples[sampleIdx] >> sampleOffset ) & 0b11;
                     for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
