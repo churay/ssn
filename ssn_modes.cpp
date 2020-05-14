@@ -27,7 +27,7 @@ namespace mode {
 typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t, const float64_t );
 typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
 
-constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 1.0 };
+constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 1.0, 1.0 };
 
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
@@ -320,6 +320,8 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
             const float64_t cTallyMin = glm::min( prevTallyPos, currTallyPos );
             const float64_t cTallyMax = glm::max( prevTallyPos, currTallyPos );
 
+            pState->tallyPoss[tallyIdx] = currTallyPos + csTallyDX / 2.0;
+
             const int32_t cSampleMinIdx = glm::ceil( cTallyMin / csTallyDX );
             const int32_t cSampleMaxIdx = glm::floor( cTallyMax / csTallyDX );
             for( int32_t xIdx = cSampleMinIdx;
@@ -342,7 +344,11 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
         return true;
     };
-    const static update_f csUpdateFuns[] = { csUpdateIntro, csUpdateTally };
+    const static auto csUpdateOutro = []
+            ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT, const float64_t pPT ) -> bool32_t  {
+        return true;
+    };
+    const static update_f csUpdateFuns[] = { csUpdateIntro, csUpdateTally, csUpdateOutro };
 
     bool32_t phaseResult = true;
 
@@ -377,23 +383,75 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
     };
     const static auto csRenderTally = []
             ( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) -> bool32_t  {
-        const float32_t cHeaderPadding = 0.05f;
-        const vec2f32_t cHeaderDims = { 1.0f - 2.0f * cHeaderPadding, 0.25f };
-        const vec2f32_t cHeaderPos = { cHeaderPadding, 1.0f - cHeaderPadding - cHeaderDims.y };
+        { // Render Tally Regions //
+            const static float32_t csTallyWidth = 1.0e-2f, csTallyHeight = 1.0f;
 
-        llce::gfx::text::render( "SCORES!", &ssn::color::INFOL,
-            llce::box_t(cHeaderPos, cHeaderDims) );
+            for( uint32_t tallyIdx = 0; tallyIdx < 2; tallyIdx++ ) {
+                llce::gfx::box::render( llce::box_t(
+                        pState->tallyPoss[tallyIdx], 0.0f, 1.0f, 1.0f,
+                        tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
+                    &ssn::color::INFOLL );
+                llce::gfx::box::render( llce::box_t(
+                        pState->tallyPoss[tallyIdx], 0.0f,
+                        csTallyWidth, csTallyHeight, llce::geom::anchor2D::ml),
+                    &ssn::color::INFOL );
+            }
+        }
 
-        // TODO(JRC): Render the line representing the current location of
-        // the each tallying front.
-        // TODO(JRC): Render a status bar that starts on either end for each team.
-        std::cout << "Scores:" << std::endl;
-        std::cout << "  Left: " << pState->scoreTotals[ssn::team::left] << std::endl;
-        std::cout << "  Right: " << pState->scoreTotals[ssn::team::right] << std::endl;
+        { // Render Header Text //
+            const static float32_t csHeaderPadding = 0.05f;
+            const static vec2f32_t csHeaderDims = { 1.0f - 2.0f * csHeaderPadding, 0.25f };
+            const static vec2f32_t csHeaderPos = { csHeaderPadding, 1.0f - csHeaderPadding - csHeaderDims.y };
+
+            llce::gfx::text::render( "SCORES!", &ssn::color::INFOL,
+                llce::box_t(csHeaderPos, csHeaderDims) );
+        }
+
+        { // Render Progress Bar //
+            const static float32_t csProgressPadding = 0.1f;
+            const static vec2f32_t csProgressBarDims = { 1.0f - 2.0f * csProgressPadding, 0.1f };
+            const static vec2f32_t csProgressBarPos = { csProgressPadding, csProgressPadding };
+
+            llce::gfx::render_context_t progressRC(
+                llce::box_t(csProgressBarPos, csProgressBarDims), &ssn::color::FOREGROUND );
+            progressRC.render();
+
+            for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+                llce::gfx::box::render( llce::box_t(
+                        team == ssn::team::left ? 0.0f : 1.0f, 0.0f,
+                        pState->scoreTotals[team], 1.0f,
+                        team == ssn::team::left ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
+                    &ssn::color::TEAM[team] );
+            }
+
+            // TODO(JRC): Factor this code so that it isn't duplicated from the
+            // 'game::render' border rendering functionality.
+            mat4f32_t sideSpace( 1.0f );
+            sideSpace = glm::translate( vec3f32_t(1.0f, 1.0f, 0.0f) );
+            sideSpace *= glm::rotate( glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+            sideSpace *= glm::scale( vec3f32_t(-1.0f, 1.0f, 1.0f) );
+            glMultMatrixf( &sideSpace[0][0] );
+
+            for( uint32_t sideIdx = 0; sideIdx < 4; sideIdx++ ) {
+                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) );
+                // NOTE(JRC): Since the "side" coordinate system is left-handed, the
+                // rotations need to be inverted relative to expectation.
+                sideSpace *= glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+                glMultMatrixf( &sideSpace[0][0] );
+
+                glBegin( GL_QUADS ); {
+                    glVertex2f( 0.0f, 0.0f );
+                    glVertex2f( 0.0f, 1.0f );
+                    glVertex2f( 2.0e-2f, 1.0f );
+                    glVertex2f( 2.0e-2f, 0.0f );
+                } glEnd();
+            }
+        }
 
         return true;
     };
-    const static render_f csRenderFuns[] = { csRenderIntro, csRenderTally };
+    const static auto csRenderOutro = csRenderTally;
+    const static render_f csRenderFuns[] = { csRenderIntro, csRenderTally, csRenderOutro };
 
     bool32_t phaseResult = true;
 
@@ -434,6 +492,21 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
         } else if( cMenuIndex == 1 ) {
             pState->pmid = ssn::mode::title_id;
         }
+    }
+
+    { // Set Render Header Based on Winner //
+        const char8_t cTeamNames[2][8] = { "LEFT", "RIGHT" };
+        const auto cTeamWinner =
+            ( pState->scoreTotals[ssn::team::left] > pState->scoreTotals[ssn::team::right] ) ?
+            ssn::team::left : ssn::team::right;
+
+        char8_t headerText[16];
+        std::snprintf( &headerText[0], sizeof(headerText),
+            "%s WINS!", &cTeamNames[cTeamWinner][0] );
+        const color4u8_t* headerColor = &ssn::color::TEAM[cTeamWinner];
+
+        std::strcpy( &pState->resetMenu.mTitle[0], &headerText[0] );
+        pState->resetMenu.mTitleColor = headerColor;
     }
 
     return true;

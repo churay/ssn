@@ -42,6 +42,8 @@ struct state_t {
     bit8_t scoreSamples[SCORE_SAMPLES_BYTES];
     bool32_t scoreTallied;
 
+    float32_t tallyPoss[2];
+
     // Menu State //
     llce::gui::menu_t titleMenu;
     llce::gui::menu_t resetMenu;
