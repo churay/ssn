@@ -391,10 +391,19 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
                         pState->tallyPoss[tallyIdx], 0.0f, 1.0f, 1.0f,
                         tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
                     &ssn::color::INFOLL );
-                llce::gfx::box::render( llce::box_t(
-                        pState->tallyPoss[tallyIdx], 0.0f,
-                        csTallyWidth, csTallyHeight, llce::geom::anchor2D::ml),
-                    &ssn::color::INFOL );
+
+                float32_t tallyMidDist = glm::abs( pState->tallyPoss[tallyIdx] - 0.5f );
+                if( tallyMidDist > csTallyWidth ) {
+                    llce::gfx::box::render( llce::box_t(
+                            pState->tallyPoss[tallyIdx], 0.0f,
+                            csTallyWidth, csTallyHeight, llce::geom::anchor2D::ml),
+                        &ssn::color::INFOL );
+                } else {
+                    llce::gfx::box::render( llce::box_t(
+                            0.5f, 0.0f, tallyMidDist, csTallyHeight,
+                            tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
+                        &ssn::color::INFOL );
+                }
             }
         }
 
@@ -495,10 +504,12 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
     }
 
     { // Set Render Header Based on Winner //
-        const char8_t cTeamNames[2][8] = { "LEFT", "RIGHT" };
-        const auto cTeamWinner =
-            ( pState->scoreTotals[ssn::team::left] > pState->scoreTotals[ssn::team::right] ) ?
-            ssn::team::left : ssn::team::right;
+        const float32_t* cScores = &pState->scoreTotals[0];
+        const char8_t cTeamNames[3][8] = { "LEFT", "RIGHT", "NOBODY" };
+        const auto cTeamWinner = (
+            (cScores[ssn::team::left] > cScores[ssn::team::right]) ? ssn::team::left : (
+            (cScores[ssn::team::left] < cScores[ssn::team::right]) ? ssn::team::right : (
+            ssn::team::neutral)) );
 
         char8_t headerText[16];
         std::snprintf( &headerText[0], sizeof(headerText),
