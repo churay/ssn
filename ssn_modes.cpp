@@ -27,7 +27,7 @@ namespace mode {
 typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t, const float64_t );
 typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
 
-constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 1.0, 1.0 };
+constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 2.0, 1.0 };
 
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
@@ -299,15 +299,12 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
     };
     const static auto csUpdateTally = []
             ( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT, const float64_t pPT ) -> bool32_t  {
-        const static float64_t csTallyVelocity = 0.5 / SCORE_PHASE_DURATIONS[1];
         const static float64_t csTallyDX = 1.0 / ssn::SCORE_SAMPLE_RES.x;
         const static float64_t csTallyDY = 1.0 / ssn::SCORE_SAMPLE_RES.y;
         const static float64_t csTallyDA = csTallyDX * csTallyDY;
 
-        const float64_t cPrevBasePos = csTallyVelocity *
-            glm::max( (pPT - pDT) / SCORE_PHASE_DURATIONS[1], 0.0 );
-        const float64_t cCurrBasePos = csTallyVelocity *
-            glm::min( pPT / SCORE_PHASE_DURATIONS[1], 1.0 );
+        const float64_t cPrevBasePos = 0.5 * glm::max( (pPT - pDT) / SCORE_PHASE_DURATIONS[1], 0.0 );
+        const float64_t cCurrBasePos = 0.5 * glm::min( pPT / SCORE_PHASE_DURATIONS[1], 1.0 );
 
         for( uint32_t tallyIdx = 0; tallyIdx < 2; tallyIdx++ ) {
             // NOTE(JRC): The initial offsets effectively make the tally fronts
@@ -376,7 +373,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
         const static vec2f32_t csTextPos( 0.5f, 0.5f );
         const static vec2f32_t csTextDims( 1.0f - 2.0f * csTextPadding, 1.0f - 2.0f * csTextPadding );
 
-        llce::gfx::text::render( "GAME!", &ssn::color::INFOL,
+        llce::gfx::text::render( "GAME!", &ssn::color::INFO,
             llce::box_t(csTextPos, csTextDims, llce::geom::anchor2D::mm) );
 
         return true;
@@ -412,7 +409,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             const static vec2f32_t csHeaderDims = { 1.0f - 2.0f * csHeaderPadding, 0.25f };
             const static vec2f32_t csHeaderPos = { csHeaderPadding, 1.0f - csHeaderPadding - csHeaderDims.y };
 
-            llce::gfx::text::render( "SCORES!", &ssn::color::INFOL,
+            llce::gfx::text::render( "SCORES!", &ssn::color::INFO,
                 llce::box_t(csHeaderPos, csHeaderDims) );
         }
 
