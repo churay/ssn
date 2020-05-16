@@ -49,12 +49,6 @@ void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, c
         paddle->render();
     }
 
-    { // Annotation Render //
-        llce::gfx::text::render( "YOU", &ssn::color::INFO, 20.0f,
-            paddle->mBBox.mPos + llce::geom::anchor( paddle->mBBox.mDims, llce::geom::anchor2D::mh ),
-            llce::geom::anchor2D::ml );
-    }
-
     { // Timer Render //
         const static float32_t csSidePadding = 1.0e-2f;
 
@@ -418,38 +412,45 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             const static vec2f32_t csProgressBarDims = { 1.0f - 2.0f * csProgressPadding, 0.1f };
             const static vec2f32_t csProgressBarPos = { csProgressPadding, csProgressPadding };
 
+            const static float32_t csProgressBarAspect = llce::gfx::aspect( csProgressBarDims );
+            const static vec2f32_t csProgressBorderDims = { 1.0e-2f * csProgressBarAspect, 1.0e-2f };
+
             llce::gfx::render_context_t progressRC(
                 llce::box_t(csProgressBarPos, csProgressBarDims), &ssn::color::FOREGROUND );
             progressRC.render();
 
             for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
-                llce::gfx::box::render( llce::box_t(
-                        team == ssn::team::left ? 0.0f : 1.0f, 0.0f,
-                        pState->scoreTotals[team], 1.0f,
-                        team == ssn::team::left ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
-                    &ssn::color::TEAM[team] );
+                llce::box_t teamBox(
+                    team == ssn::team::left ? 0.0f : 1.0f, 0.0f,
+                    pState->scoreTotals[team], 1.0f,
+                    team == ssn::team::left ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl );
+                llce::gfx::box::render( teamBox, &ssn::color::TEAM[team] );
+
+                char8_t teamText[8];
+                std::snprintf( &teamText[0], ARRAY_LEN(teamText), "%0.2f%%",
+                    glm::clamp(100.0f * pState->scoreTotals[team], 0.0f, 100.0f) );
+                llce::gfx::text::render( teamText, &ssn::color::INFO,
+                    llce::box_t(teamBox.center(),
+                        vec2f32_t(teamBox.mDims.x, 0.30f * teamBox.mDims.y),
+                        llce::geom::anchor2D::mm) );
             }
 
             // TODO(JRC): Factor this code so that it isn't duplicated from the
             // 'game::render' border rendering functionality.
             mat4f32_t sideSpace( 1.0f );
-            sideSpace = glm::translate( vec3f32_t(1.0f, 1.0f, 0.0f) );
-            sideSpace *= glm::rotate( glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
-            sideSpace *= glm::scale( vec3f32_t(-1.0f, 1.0f, 1.0f) );
-            glMultMatrixf( &sideSpace[0][0] );
-
             for( uint32_t sideIdx = 0; sideIdx < 4; sideIdx++ ) {
-                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) );
-                // NOTE(JRC): Since the "side" coordinate system is left-handed, the
-                // rotations need to be inverted relative to expectation.
-                sideSpace *= glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
+                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) ) *
+                    glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
                 glMultMatrixf( &sideSpace[0][0] );
 
+                // NOTE(JRC): Different widths are needed for the different axes
+                // because the context (i.e. the progress bar) has a skewed aspect.
+                float32_t sideWidth = *VECTOR_AT( csProgressBorderDims, sideIdx % 2 );
                 glBegin( GL_QUADS ); {
                     glVertex2f( 0.0f, 0.0f );
                     glVertex2f( 0.0f, 1.0f );
-                    glVertex2f( 2.0e-2f, 1.0f );
-                    glVertex2f( 2.0e-2f, 0.0f );
+                    glVertex2f( sideWidth, 1.0f );
+                    glVertex2f( sideWidth, 0.0f );
                 } glEnd();
             }
         }
