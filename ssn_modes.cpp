@@ -367,33 +367,35 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
         const static vec2f32_t csTextPos( 0.5f, 0.5f );
         const static vec2f32_t csTextDims( 1.0f - 2.0f * csTextPadding, 1.0f - 2.0f * csTextPadding );
 
-        llce::gfx::text::render( "GAME!", &ssn::color::INFO,
+        llce::gfx::color_context_t textCC( &ssn::color::INFO );
+        llce::gfx::render::text( "GAME!",
             llce::box_t(csTextPos, csTextDims, llce::geom::anchor2D::mm) );
 
         return true;
     };
     const static auto csRenderTally = []
             ( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) -> bool32_t  {
+        llce::gfx::color_context_t tallyCC( &ssn::color::INFOLL );
+
         { // Render Tally Regions //
             const static float32_t csTallyWidth = 1.0e-2f, csTallyHeight = 1.0f;
 
             for( uint32_t tallyIdx = 0; tallyIdx < 2; tallyIdx++ ) {
-                llce::gfx::box::render( llce::box_t(
-                        pState->tallyPoss[tallyIdx], 0.0f, 1.0f, 1.0f,
-                        tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
-                    &ssn::color::INFOLL );
+                tallyCC.update( &ssn::color::INFOLL );
+                llce::gfx::render::box( llce::box_t(
+                    pState->tallyPoss[tallyIdx], 0.0f, 1.0f, 1.0f,
+                    tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl) );
 
+                tallyCC.update( &ssn::color::INFOL );
                 float32_t tallyMidDist = glm::abs( pState->tallyPoss[tallyIdx] - 0.5f );
                 if( tallyMidDist > csTallyWidth ) {
-                    llce::gfx::box::render( llce::box_t(
-                            pState->tallyPoss[tallyIdx], 0.0f,
-                            csTallyWidth, csTallyHeight, llce::geom::anchor2D::ml),
-                        &ssn::color::INFOL );
+                    llce::gfx::render::box( llce::box_t(
+                        pState->tallyPoss[tallyIdx], 0.0f,
+                        csTallyWidth, csTallyHeight, llce::geom::anchor2D::ml) );
                 } else {
-                    llce::gfx::box::render( llce::box_t(
-                            0.5f, 0.0f, tallyMidDist, csTallyHeight,
-                            tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl),
-                        &ssn::color::INFOL );
+                    llce::gfx::render::box( llce::box_t(
+                        0.5f, 0.0f, tallyMidDist, csTallyHeight,
+                        tallyIdx ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl) );
                 }
             }
         }
@@ -403,8 +405,8 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             const static vec2f32_t csHeaderDims = { 1.0f - 2.0f * csHeaderPadding, 0.25f };
             const static vec2f32_t csHeaderPos = { csHeaderPadding, 1.0f - csHeaderPadding - csHeaderDims.y };
 
-            llce::gfx::text::render( "SCORES!", &ssn::color::INFO,
-                llce::box_t(csHeaderPos, csHeaderDims) );
+            tallyCC.update( &ssn::color::INFO );
+            llce::gfx::render::text( "SCORES!", llce::box_t(csHeaderPos, csHeaderDims) );
         }
 
         { // Render Progress Bar //
@@ -415,29 +417,34 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             const static float32_t csProgressBarAspect = llce::gfx::aspect( csProgressBarDims );
             const static vec2f32_t csProgressBorderDims = { 1.0e-2f * csProgressBarAspect, 1.0e-2f };
 
-            llce::gfx::render_context_t progressRC(
-                llce::box_t(csProgressBarPos, csProgressBarDims), &ssn::color::FOREGROUND );
-            progressRC.render();
+            llce::gfx::render_context_t progressRC( llce::box_t(csProgressBarPos, csProgressBarDims) );
+            tallyCC.update( &ssn::color::FOREGROUND );
+            llce::gfx::render::box();
 
             for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
                 llce::box_t teamBox(
                     team == ssn::team::left ? 0.0f : 1.0f, 0.0f,
                     pState->scoreTotals[team], 1.0f,
                     team == ssn::team::left ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl );
-                llce::gfx::box::render( teamBox, &ssn::color::TEAM[team] );
+
+                tallyCC.update( &ssn::color::TEAM[team] );
+                llce::gfx::render::box( teamBox );
 
                 char8_t teamText[8];
                 std::snprintf( &teamText[0], ARRAY_LEN(teamText), "%0.2f%%",
                     glm::clamp(100.0f * pState->scoreTotals[team], 0.0f, 100.0f) );
-                llce::gfx::text::render( teamText, &ssn::color::INFO,
-                    llce::box_t(teamBox.center(),
-                        vec2f32_t(teamBox.mDims.x, 0.30f * teamBox.mDims.y),
-                        llce::geom::anchor2D::mm) );
+
+                tallyCC.update( &ssn::color::INFO );
+                llce::gfx::render::text( teamText, llce::box_t(
+                    teamBox.center(),
+                    vec2f32_t(teamBox.mDims.x, 0.30f * teamBox.mDims.y),
+                    llce::geom::anchor2D::mm) );
             }
 
             // TODO(JRC): Factor this code so that it isn't duplicated from the
             // 'game::render' border rendering functionality.
             mat4f32_t sideSpace( 1.0f );
+            tallyCC.update( &ssn::color::INFOL );
             for( uint32_t sideIdx = 0; sideIdx < 4; sideIdx++ ) {
                 sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) ) *
                     glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );

@@ -66,7 +66,7 @@ void particle_t::update( const float64_t pDT ) {
 
 void particle_t::render() const {
     if( this->valid() ) {
-        llce::gfx::render_context_t particleRC( mPos, mBasisX, mBasisY, &ssn::color::ERROR );
+        llce::gfx::render_context_t particleRC( mPos, mBasisX, mBasisY );
         PARTICLE_RENDER_FUNS[mType]( this );
     }
 }

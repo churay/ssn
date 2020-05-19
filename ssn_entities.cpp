@@ -40,12 +40,13 @@ bounds_t::bounds_t( const llce::box_t& pBBox ) :
 
 
 void bounds_t::render() const {
-    llce::gfx::render_context_t baseRC( mBBox, mColor );
-    baseRC.render();
+    llce::gfx::render_context_t entityRC( mBBox );
+    llce::gfx::color_context_t entityCC( mColor );
+    llce::gfx::render::box();
 
     glBegin( GL_TRIANGLES );
     for( uint32_t areaIdx = 0; areaIdx < mAreaCount; areaIdx++ ) {
-        glColor4ubv( (uint8_t*)&ssn::color::TEAM[mAreaTeams[areaIdx]] );
+        entityCC.update( &ssn::color::TEAM[mAreaTeams[areaIdx]] );
         for( uint32_t cornerIdx = 0; cornerIdx < AREA_CORNER_COUNT; cornerIdx++ ) {
             uint32_t areaCornerIdx = areaIdx * AREA_CORNER_COUNT + cornerIdx;
             glVertex2fv( (float32_t*)&mAreaCorners[areaCornerIdx] );
@@ -55,10 +56,13 @@ void bounds_t::render() const {
 
     const float32_t cCornerRadius = mBBox.xbounds().length() * bounds_t::CORNER_RATIO;
     for( uint32_t cornerIdx = 0; cornerIdx < mCurrAreaCount; cornerIdx++ ) {
-        llce::circle_t cornerFullCircle( mCurrAreaCorners[cornerIdx], cCornerRadius );
-        llce::gfx::circle::render( cornerFullCircle, &ssn::color::INTERFACE );
-        llce::circle_t cornerInsetCircle( mCurrAreaCorners[cornerIdx], 0.75f * cCornerRadius );
-        llce::gfx::circle::render( cornerInsetCircle, &ssn::color::TEAM[mCurrAreaTeam] );
+        entityCC.update( &ssn::color::INTERFACE );
+        llce::gfx::render::circle(
+            llce::circle_t(mCurrAreaCorners[cornerIdx], cCornerRadius) );
+
+        entityCC.update( &ssn::color::TEAM[mCurrAreaTeam] );
+        llce::gfx::render::circle(
+            llce::circle_t(mCurrAreaCorners[cornerIdx], 0.75f * cCornerRadius) );
     }
 }
 
@@ -134,7 +138,6 @@ void paddle_t::update( const float64_t pDT ) {
 void paddle_t::render() const {
     const static llce::circle_t csPaddleBounds( 0.5f, 0.5f, 1.0f );
     const static llce::circle_t csColorBounds( csPaddleBounds.mCenter, 0.90f * csPaddleBounds.mRadius );
-    const static color4u8_t* csPaddleOutlineColor = &ssn::color::INTERFACE;
 
     const float32_t cCooldownPercent = glm::min( 1.0f,
         (paddle_t::RUSH_COOLDOWN - mRushCooldown) / paddle_t::RUSH_COOLDOWN );
@@ -144,12 +147,18 @@ void paddle_t::render() const {
         cColorF32, (cCooldownPercent >= 1.0f) ? 0.0f : -0.5f );
     const color4u8_t cCooldownColor = llce::gfx::color::f322u8( cCooldownColorF32 );
 
-    llce::gfx::render_context_t entityRC( mBBox, mColor );
-    llce::gfx::circle::render( csPaddleBounds, csPaddleOutlineColor );
-    llce::gfx::circle::render( csColorBounds, &ssn::color::TEAM[ssn::team::neutral] );
-    llce::gfx::circle::render( csColorBounds, glm::half_pi<float32_t>(),
-        glm::half_pi<float32_t>() + 2.0f * glm::pi<float32_t>() * cCooldownPercent,
-        &cCooldownColor );
+    llce::gfx::render_context_t entityRC( mBBox );
+    llce::gfx::color_context_t entityCC( mColor );
+
+    entityCC.update( &ssn::color::INTERFACE );
+    llce::gfx::render::circle( csPaddleBounds );
+
+    entityCC.update( &ssn::color::TEAM[ssn::team::neutral] );
+    llce::gfx::render::circle( csColorBounds );
+
+    entityCC.update( &cCooldownColor );
+    llce::gfx::render::circle( csColorBounds, glm::half_pi<float32_t>(),
+        glm::half_pi<float32_t>() + 2.0f * glm::pi<float32_t>() * cCooldownPercent );
 }
 
 
@@ -258,8 +267,8 @@ void puck_t::render() const {
                 pFocusBox.center().x - cursorRadius / 2.0f, boundsBox.min().y,
                 cursorRadius, boundsBox.ybounds().length() );
 
-        llce::gfx::render_context_t cursorRC( cursorBox, &cursorColor );
-        cursorRC.render();
+        llce::gfx::color_context_t cursorCC( &cursorColor );
+        llce::gfx::render::box( cursorBox );
     };
 
     csRenderCursor( this, mBBoxes[puck_t::BBOX_BASE_ID], puck_t::BBOX_XWRAP_ID );
@@ -272,21 +281,24 @@ void puck_t::render() const {
 
     const static llce::circle_t csPuckBounds( 0.5f, 0.5f, 1.0f );
     const static llce::circle_t csSideBounds( csPuckBounds.mCenter, 0.875f * csPuckBounds.mRadius );
-    const static color4u8_t* csPuckOutlineColor = &ssn::color::INTERFACE;
 
+    llce::gfx::color_context_t entityCC( mColor );
     for( uint32_t bboxIdx = 0; bboxIdx < puck_t::BBOX_COUNT; bboxIdx++ ) {
         const llce::box_t& puckBBox = mBBoxes[bboxIdx];
         const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
         if( !puckBBox.empty() ) {
             const vec2i8_t puckTangible = tangible( puckWrapCount );
 
-            llce::gfx::render_context_t entityRC( puckBBox, mColor );
-            llce::gfx::circle::render( csPuckBounds, csPuckOutlineColor );
+            llce::gfx::render_context_t entityRC( puckBBox );
+            entityCC.update( &ssn::color::INTERFACE );
+            llce::gfx::render::circle( csPuckBounds );
             for( int8_t side = ssn::team::left; side <= ssn::team::right; side++ ) {
                 const float32_t sideAngle = ( M_PI / 2.0f ) + ( side + 0.0f ) * M_PI;
                 const color4u8_t* sideColor = *VECTOR_AT( puckTangible, side ) ?
                     &ssn::color::TEAM[side] : &ssn::color::TEAM[ssn::team::neutral];
-                llce::gfx::circle::render( csSideBounds, sideAngle, sideAngle + M_PI, sideColor );
+
+                entityCC.update( sideColor );
+                llce::gfx::render::circle( csSideBounds, sideAngle, sideAngle + M_PI );
             }
         }
     }

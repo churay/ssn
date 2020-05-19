@@ -33,9 +33,9 @@ void entity_t::update( const float64_t pDT ) {
 
 
 void entity_t::render() const {
-    const static llce::circle_t csRenderCircle( vec2f32_t(0.5f, 0.5f), 1.0f );
-    llce::gfx::render_context_t entityRC( mBBox, mColor );
-    llce::gfx::circle::render( csRenderCircle, mColor );
+    llce::gfx::render_context_t entityRC( mBBox );
+    llce::gfx::color_context_t entityCC( mColor );
+    llce::gfx::render::circle( llce::circle_t(vec2f32_t(0.5f, 0.5f), 1.0f) );
 }
 
 }
