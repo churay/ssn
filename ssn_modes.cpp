@@ -174,7 +174,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
         if( pState->ht > 0.0 ) {
             pState->ht = ( pState->ht < ssn::HIT_DURATION ) ? pState->ht + pDT : 0.0;
         } else if( pState->rt >= ssn::ROUND_DURATION ) {
-            pState->pmid = ssn::mode::score_id;
+            pState->pmode = ssn::mode::score::ID;
         } else {
             paddle->move( paddleInput.x, paddleInput.y );
             if( rushInput ) { paddle->rush(); }
@@ -199,7 +199,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
 
     // TODO(JRC): Remove this shortcut function once debugging is over.
     if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_T) ) { // Game Scoring //
-        pState->pmid = ssn::mode::score_id;
+        pState->pmode = ssn::mode::score::ID;
     }
 
     return true;
@@ -209,6 +209,24 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
 bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
     render_gameboard( pState, pInput, pOutput );
 
+    return true;
+}
+
+/// 'ssn::mode::select' Functions  ///
+
+bool32_t select::init( ssn::state_t* pState ) {
+    // TODO(JRC): Implement this function.
+    return true;
+}
+
+
+bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
+    // TODO(JRC): Implement this function.
+    return true;
+}
+
+bool32_t select::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
+    // TODO(JRC): Implement this function.
     return true;
 }
 
@@ -231,9 +249,9 @@ bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
     if( cMenuEvent == llce::gui::event_e::select ) {
         if( cMenuIndex == 0 ) {
-            pState->pmid = ssn::mode::game_id;
+            pState->pmode = ssn::mode::game::ID;
         } else if( cMenuIndex == 1 ) {
-            pState->pmid = ssn::mode::exit_id;
+            pState->pmode = ssn::mode::exit::ID;
         }
     }
 
@@ -353,7 +371,7 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
     }
 
     if( pState->st >= phaseMax ) {
-        pState->pmid = ssn::mode::reset_id;
+        pState->pmode = ssn::mode::reset::ID;
     }
 
     return phaseResult;
@@ -502,9 +520,9 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
     if( cMenuEvent == llce::gui::event_e::select ) {
         if( cMenuIndex == 0 ) {
-            pState->pmid = ssn::mode::game_id;
+            pState->pmode = ssn::mode::game::ID;
         } else if( cMenuIndex == 1 ) {
-            pState->pmid = ssn::mode::title_id;
+            pState->pmode = ssn::mode::title::ID;
         }
     }
 

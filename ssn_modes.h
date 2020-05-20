@@ -8,26 +8,40 @@
 namespace ssn {
 
 namespace mode {
+    namespace boot { constexpr static mode_e ID = -1; }
+    namespace exit { constexpr static mode_e ID = -2; }
+
     namespace game {
-        bool32_t init( ssn::state_t* pState );
+        constexpr static mode_e ID = 0;
+        bool32_t init( ssn::state_t* );
+        bool32_t update( ssn::state_t*, ssn::input_t*, const float64_t );
+        bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
+    }
+
+    namespace select {
+        constexpr static mode_e ID = 1;
+        bool32_t init( ssn::state_t* );
         bool32_t update( ssn::state_t*, ssn::input_t*, const float64_t );
         bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
     }
 
     namespace title {
-        bool32_t init( ssn::state_t* pState );
+        constexpr static mode_e ID = 2;
+        bool32_t init( ssn::state_t* );
         bool32_t update( ssn::state_t*, ssn::input_t*, const float64_t );
         bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
     }
 
     namespace score {
-        bool32_t init( ssn::state_t* pState );
+        constexpr static mode_e ID = 3;
+        bool32_t init( ssn::state_t* );
         bool32_t update( ssn::state_t*, ssn::input_t*, const float64_t );
         bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
     }
 
     namespace reset {
-        bool32_t init( ssn::state_t* pState );
+        constexpr static mode_e ID = 4;
+        bool32_t init( ssn::state_t* );
         bool32_t update( ssn::state_t*, ssn::input_t*, const float64_t );
         bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
     }

@@ -25,11 +25,11 @@ typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ss
 /// Per-Mode Tables ///
 
 constexpr static init_f MODE_INIT_FUNS[] = {
-    ssn::mode::game::init, ssn::mode::title::init, ssn::mode::score::init, ssn::mode::reset::init };
+    ssn::mode::game::init, ssn::mode::select::init, ssn::mode::title::init, ssn::mode::score::init, ssn::mode::reset::init };
 constexpr static update_f MODE_UPDATE_FUNS[] = {
-    ssn::mode::game::update, ssn::mode::title::update, ssn::mode::score::update, ssn::mode::reset::update };
+    ssn::mode::game::update, ssn::mode::select::update, ssn::mode::title::update, ssn::mode::score::update, ssn::mode::reset::update };
 constexpr static render_f MODE_RENDER_FUNS[] = {
-    ssn::mode::game::render, ssn::mode::title::render, ssn::mode::score::render, ssn::mode::reset::render };
+    ssn::mode::game::render, ssn::mode::select::render, ssn::mode::title::render, ssn::mode::score::render, ssn::mode::reset::render };
 constexpr static uint32_t MODE_COUNT = ARRAY_LEN( MODE_INIT_FUNS );
 
 /// Interface Functions ///
@@ -56,8 +56,8 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->tt = 0.0;
     pState->st = 0.0;
 
-    pState->mid = ssn::mode::boot_id;
-    pState->pmid = ssn::mode::title_id;
+    pState->mode = ssn::mode::boot::ID;
+    pState->pmode = ssn::mode::title::ID;
 
     pState->rng = llce::rng_t( ssn::RNG_SEED );
 
@@ -78,10 +78,10 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
 
 extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ssn::output_t* pOutput, const float64_t pDT ) {
-    if( pState->mid != pState->pmid ) {
-        if( pState->pmid < 0 ) { return false; }
-        MODE_INIT_FUNS[pState->pmid]( pState );
-        pState->mid = pState->pmid;
+    if( pState->mode != pState->pmode ) {
+        if( pState->pmode < 0 ) { return false; }
+        MODE_INIT_FUNS[pState->pmode]( pState );
+        pState->mode = pState->pmode;
         pState->st = 0.0;
     }
 
@@ -89,7 +89,7 @@ extern "C" bool32_t update( ssn::state_t* pState, ssn::input_t* pInput, const ss
     pState->tt += pDT;
     pState->st += pDT;
 
-    bool32_t updateStatus = MODE_UPDATE_FUNS[pState->mid]( pState, pInput, pDT );
+    bool32_t updateStatus = MODE_UPDATE_FUNS[pState->mode]( pState, pInput, pDT );
     return updateStatus;
 }
 
@@ -103,6 +103,6 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
     llce::gfx::color_context_t metaCC( &ssn::color::BACKGROUND );
     llce::gfx::render::box();
 
-    bool32_t renderStatus = MODE_RENDER_FUNS[pState->mid]( pState, pInput, pOutput );
+    bool32_t renderStatus = MODE_RENDER_FUNS[pState->mode]( pState, pInput, pOutput );
     return renderStatus;
 }

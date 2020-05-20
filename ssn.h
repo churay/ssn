@@ -22,8 +22,8 @@ struct state_t {
     float64_t tt; // total time
     float64_t st; // state time
 
-    mode::mode_e mid; // game mode
-    mode::mode_e pmid; // pending mode
+    mode_e mode; // current mode
+    mode_e pmode; // pending mode
 
     llce::rng_t rng; // random number generator
 
@@ -31,10 +31,11 @@ struct state_t {
     float64_t rt; // round time
     float64_t ht; // hit time
 
+    stage_e sid;
+
     bounds_t bounds;
     puck_t puck;
     paddle_t paddle;
-
     particulator_t particulator;
 
     // Scoring State //

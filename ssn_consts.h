@@ -7,8 +7,12 @@ namespace ssn {
 
 /// Global Constants ///
 
-namespace mode { enum mode_e { boot_id = -1, exit_id = -2, game_id = 0, title_id, score_id, reset_id }; };
 namespace team { enum team_e { left = 0, right, neutral }; };
+namespace stage { enum stage_e { box = 0, vert, horz }; };
+
+typedef int8_t mode_e;
+typedef team::team_e team_e;
+typedef stage::stage_e stage_e;
 
 /// Game State Constants ///
 
