@@ -29,6 +29,8 @@ typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ss
 
 constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 2.0, 1.0 };
 
+constexpr static char8_t SELECT_ITEM_TEXT[][8] = { "BOX ", "VERT", "HORZ", "WILD" };
+constexpr static uint32_t SELECT_ITEM_COUNT = ARRAY_LEN( SELECT_ITEM_TEXT );
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
 constexpr static char8_t RESET_ITEM_TEXT[][8] = { "REPLAY", "EXIT  " };
@@ -47,6 +49,18 @@ void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, c
         puck->render();
         particulator->render();
         paddle->render();
+
+        { // Out-of-Bounds Occlusion //
+            const float32_t cBoundsBorderSizes[] = {
+                bounds->mBBox.min().y,        // y=ymin
+                1.0f - bounds->mBBox.max().x, // x=xmax
+                1.0f - bounds->mBBox.max().y, // y=ymax
+                bounds->mBBox.min().x,        // x=xmin
+            };
+
+            llce::gfx::color_context_t sideCC( &ssn::color::OUTOFBOUND );
+            llce::gfx::render::border( cBoundsBorderSizes );
+        }
     }
 
     { // Timer Render //
@@ -90,21 +104,23 @@ bool32_t game::init( ssn::state_t* pState ) {
     pState->rt = 0.0;
     pState->ht = 0.0;
 
-    const float32_t cPaddleBaseRadius = 5.0e-2f;
+    const vec2f32_t cStageCenter( 0.5f, 0.5f );
+    const vec2f32_t cStageDims = ssn::STAGE_DIMENSIONS[pState->sid];
+    const float32_t cPaddleRadius = 5.0e-2f;
+    const float32_t cPuckRadius = cPaddleRadius * 6.0e-1f;
 
-    const vec2f32_t boundsBasePos( 0.0f, 0.0f );
-    const vec2f32_t boundsDims( 1.0f, 1.0f );
-    pState->bounds = ssn::bounds_t( llce::box_t(boundsBasePos, boundsDims) );
+    pState->bounds = ssn::bounds_t( llce::box_t(cStageCenter, cStageDims,
+        llce::geom::anchor2D::mm) );
 
-    const vec2f32_t puckCenterPos( 0.25f, 0.5f );
-    const float32_t puckRadius( cPaddleBaseRadius * 0.6f );
-    pState->puck = ssn::puck_t( llce::circle_t(puckCenterPos, puckRadius),
+    pState->puck = ssn::puck_t( llce::circle_t(cStageCenter, cPuckRadius),
         ssn::team::neutral, &pState->bounds );
 
-    const vec2f32_t paddleCenterPos( 0.5f, 0.5f );
-    const float32_t paddleRadius( cPaddleBaseRadius );
-    pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenterPos, paddleRadius),
-        ssn::team::left, &pState->bounds );
+    // TODO(JRC): Modify this code so that one paddle is generated per team.
+    for( uint8_t team = ssn::team::left; team < ssn::team::right; team++ ) {
+        vec2f32_t paddleCenter( (team == ssn::team::left) ? 0.25f : 0.75f, 0.5f );
+        pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenter, cPaddleRadius),
+            static_cast<ssn::team_e>(team), &pState->bounds );
+    }
 
     pState->particulator = ssn::particulator_t( &pState->rng );
 
@@ -197,11 +213,6 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
         particulator->update( pDT );
     }
 
-    // TODO(JRC): Remove this shortcut function once debugging is over.
-    if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_T) ) { // Game Scoring //
-        pState->pmode = ssn::mode::score::ID;
-    }
-
     return true;
 }
 
@@ -215,18 +226,31 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 /// 'ssn::mode::select' Functions  ///
 
 bool32_t select::init( ssn::state_t* pState ) {
-    // TODO(JRC): Implement this function.
+    const char8_t* cSelectItems[] = { &SELECT_ITEM_TEXT[0][0], &SELECT_ITEM_TEXT[1][0], &SELECT_ITEM_TEXT[2][0], &SELECT_ITEM_TEXT[3][0] };
+    pState->selectMenu = llce::gui::menu_t( "STAGE",
+        cSelectItems, SELECT_ITEM_COUNT,
+        &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
+        &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+
     return true;
 }
 
 
 bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    // TODO(JRC): Implement this function.
+    const auto cMenuEvent = pState->selectMenu.update( pInput->keyboard(), pDT );
+    const uint32_t cMenuIndex = pState->selectMenu.mSelectIndex;
+
+    if( cMenuEvent == llce::gui::event_e::select ) {
+        pState->sid = static_cast<ssn::stage_e>( cMenuIndex );
+        pState->pmode = ssn::mode::game::ID;
+    }
+
     return true;
 }
 
 bool32_t select::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    // TODO(JRC): Implement this function.
+    pState->selectMenu.render();
+
     return true;
 }
 
@@ -249,7 +273,7 @@ bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
     if( cMenuEvent == llce::gui::event_e::select ) {
         if( cMenuIndex == 0 ) {
-            pState->pmode = ssn::mode::game::ID;
+            pState->pmode = ssn::mode::select::ID;
         } else if( cMenuIndex == 1 ) {
             pState->pmode = ssn::mode::exit::ID;
         }
@@ -281,8 +305,11 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
         if( pPT > SCORE_PHASE_DURATIONS[0] / 10.0 && !pState->scoreTallied ) {
             ssn::bounds_t* const bounds = &pState->bounds;
             const uint32_t cAreaLength = bounds_t::AREA_CORNER_COUNT;
-            const llce::interval_t xbounds = bounds->mBBox.xbounds();
-            const llce::interval_t ybounds = bounds->mBBox.ybounds();
+            // NOTE(JRC): The global bounds of the game space are used instead of
+            // the game space boundaries in order to preserve uniformity of sampling
+            // regardless of aspect ratio and to simplify the meaning of 'scoreSamples'.
+            const llce::interval_t xbounds( 0.0f, 1.0f ); // = bounds->mBBox.xbounds();
+            const llce::interval_t ybounds( 0.0f, 1.0f ); // = bounds->mBBox.ybounds();
 
             bit8_t* scores = &pState->scoreSamples[0];
             for( uint32_t yIdx = 0, sIdx = 0; yIdx < SCORE_SAMPLE_RES.y; yIdx++ ) {
@@ -331,6 +358,9 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
             pState->tallyPoss[tallyIdx] = currTallyPos + csTallyDX / 2.0;
 
+            // NOTE(JRC): Consider offsetting these values by the play space
+            // boundaries (i.e. bounds->mBBox.{x|y}bounds()) in order to keep
+            // the tallying to the relevant area of the game space.
             const int32_t cSampleMinIdx = glm::ceil( cTallyMin / csTallyDX );
             const int32_t cSampleMaxIdx = glm::floor( cTallyMax / csTallyDX );
             for( int32_t xIdx = cSampleMinIdx;
@@ -433,7 +463,12 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             const static vec2f32_t csProgressBarPos = { csProgressPadding, csProgressPadding };
 
             const static float32_t csProgressBarAspect = llce::gfx::aspect( csProgressBarDims );
-            const static vec2f32_t csProgressBorderDims = { 1.0e-2f * csProgressBarAspect, 1.0e-2f };
+            const float32_t csProgressBorderSizes[] = {
+                1.0e-2f * csProgressBarAspect,  // y=ymin
+                1.0e-2f,                        // x=xmax
+                1.0e-2f * csProgressBarAspect,  // y=ymax
+                1.0e-2f,                        // x=xmin
+            };
 
             llce::gfx::render_context_t progressRC( llce::box_t(csProgressBarPos, csProgressBarDims) );
             tallyCC.update( &ssn::color::FOREGROUND );
@@ -459,25 +494,8 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
                     llce::geom::anchor2D::mm) );
             }
 
-            // TODO(JRC): Factor this code so that it isn't duplicated from the
-            // 'game::render' border rendering functionality.
-            mat4f32_t sideSpace( 1.0f );
-            tallyCC.update( &ssn::color::INFOL );
-            for( uint32_t sideIdx = 0; sideIdx < 4; sideIdx++ ) {
-                sideSpace = glm::translate( vec3f32_t(0.0f, 1.0f, 0.0f) ) *
-                    glm::rotate( -glm::half_pi<float32_t>(), vec3f32_t(0.0f, 0.0f, 1.0f) );
-                glMultMatrixf( &sideSpace[0][0] );
-
-                // NOTE(JRC): Different widths are needed for the different axes
-                // because the context (i.e. the progress bar) has a skewed aspect.
-                float32_t sideWidth = *VECTOR_AT( csProgressBorderDims, sideIdx % 2 );
-                glBegin( GL_QUADS ); {
-                    glVertex2f( 0.0f, 0.0f );
-                    glVertex2f( 0.0f, 1.0f );
-                    glVertex2f( sideWidth, 1.0f );
-                    glVertex2f( sideWidth, 0.0f );
-                } glEnd();
-            }
+            tallyCC.update( &ssn::color::INFO );
+            llce::gfx::render::border( csProgressBorderSizes );
         }
 
         return true;
@@ -520,7 +538,7 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
     if( cMenuEvent == llce::gui::event_e::select ) {
         if( cMenuIndex == 0 ) {
-            pState->pmode = ssn::mode::game::ID;
+            pState->pmode = ssn::mode::select::ID;
         } else if( cMenuIndex == 1 ) {
             pState->pmode = ssn::mode::title::ID;
         }

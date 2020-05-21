@@ -8,13 +8,15 @@ namespace ssn {
 /// Global Constants ///
 
 namespace team { enum team_e { left = 0, right, neutral }; };
-namespace stage { enum stage_e { box = 0, vert, horz }; };
+namespace stage { enum stage_e { box = 0, vert, horz, wild }; };
 
 typedef int8_t mode_e;
 typedef team::team_e team_e;
 typedef stage::stage_e stage_e;
 
 /// Game State Constants ///
+
+constexpr static vec2f32_t STAGE_DIMENSIONS[] = { {1.0f, 1.0f}, {0.75f, 1.0f}, {1.0f, 0.75f}, {0.60f, 0.80f} };
 
 constexpr static float64_t HIT_DURATION = 0.3; // units: seconds
 constexpr static float64_t ROUND_DURATION = 1.0; // units: seconds

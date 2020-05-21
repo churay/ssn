@@ -100,7 +100,7 @@ extern "C" bool32_t render( const ssn::state_t* pState, const ssn::input_t* pInp
         pOutput->gfxBufferRess[llce::output::BUFFER_SHARED_ID] );
 
     llce::gfx::render_context_t metaRC( llce::box_t(-1.0f, -1.0f, 2.0f, 2.0f) );
-    llce::gfx::color_context_t metaCC( &ssn::color::BACKGROUND );
+    llce::gfx::color_context_t metaCC( &ssn::color::ERROR );
     llce::gfx::render::box();
 
     bool32_t renderStatus = MODE_RENDER_FUNS[pState->mode]( pState, pInput, pOutput );

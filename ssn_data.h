@@ -14,6 +14,7 @@ const extern color4u8_t INFO;
 const extern color4u8_t INFOL;
 const extern color4u8_t INFOLL;
 
+const extern color4u8_t OUTOFBOUND;
 const extern color4u8_t BACKGROUND;
 const extern color4u8_t FOREGROUND;
 const extern color4u8_t INTERFACE;

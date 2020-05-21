@@ -31,7 +31,7 @@ struct state_t {
     float64_t rt; // round time
     float64_t ht; // hit time
 
-    stage_e sid;
+    stage_e sid; // stage id
 
     bounds_t bounds;
     puck_t puck;
@@ -47,6 +47,7 @@ struct state_t {
 
     // Menu State //
     llce::gui::menu_t titleMenu;
+    llce::gui::menu_t selectMenu;
     llce::gui::menu_t resetMenu;
 };
 
