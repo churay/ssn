@@ -13,7 +13,7 @@ namespace ssn {
 /// Class Functions ///
 
 entity_t::entity_t( const llce::box_t& pBBox, const color4u8_t* pColor ) :
-        mBounds( pBBox.center(), std::max(pBBox.mDims.x, pBBox.mDims.y) ), mBBox( pBBox ),
+        mBounds( pBBox.mid(), std::max(pBBox.mDims.x, pBBox.mDims.y) ), mBBox( pBBox ),
         mVel( 0.0f, 0.0f ), mAccel( 0.0f, 0.0f ), mColor( pColor ) {
     
 }

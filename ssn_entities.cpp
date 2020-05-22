@@ -129,7 +129,7 @@ void paddle_t::update( const float64_t pDT ) {
             mAccel *= containVec;
 
             mBBox.embed( oBBox );
-            mBounds.mCenter = mBBox.center();
+            mBounds.mCenter = mBBox.mid();
         }
     }
 }
@@ -206,7 +206,7 @@ void puck_t::update( const float64_t pDT ) {
     { // Resolve Boundary Wrap //
         mBBox.mPos.x = oBBox.xbounds().wrap( mBBox.mPos.x );
         mBBox.mPos.y = oBBox.ybounds().wrap( mBBox.mPos.y );
-        mBounds.mCenter = mBBox.center();
+        mBounds.mCenter = mBBox.mid();
         mWrapCount += newWrapDir;
     }
 
@@ -261,10 +261,10 @@ void puck_t::render() const {
 
         const llce::box_t cursorBox = ( pDim == puck_t::BBOX_XWRAP_ID ) ?
             llce::box_t(
-                boundsBox.min().x, pFocusBox.center().y - cursorRadius / 2.0f,
+                boundsBox.min().x, pFocusBox.mid().y - cursorRadius / 2.0f,
                 boundsBox.xbounds().length(), cursorRadius ) :
             llce::box_t(
-                pFocusBox.center().x - cursorRadius / 2.0f, boundsBox.min().y,
+                pFocusBox.mid().x - cursorRadius / 2.0f, boundsBox.min().y,
                 cursorRadius, boundsBox.ybounds().length() );
 
         llce::gfx::color_context_t cursorCC( &cursorColor );
@@ -312,11 +312,11 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
 
         const vec2i8_t puckTangible = tangible( puckWrapCount );
         if( !puckBBox.empty() && *VECTOR_AT(puckTangible, pSource->mTeam) ) {
-            llce::circle_t puckBounds( puckBBox.center(), mBounds.mRadius );
+            llce::circle_t puckBounds( puckBBox.mid(), mBounds.mRadius );
             if( pSource->mBounds.overlaps(puckBounds) ) {
                 puckBounds.exbed( pSource->mBounds );
 
-                vec2f32_t hitVec = puckBounds.mCenter - puckBBox.center();
+                vec2f32_t hitVec = puckBounds.mCenter - puckBBox.mid();
                 vec2f32_t hitDir = llce::util::normalize( hitVec );
                 // FIXME(JRC): The unnecessary multiplication here acts as
                 // a workaround to weird interactions between gcc compilation

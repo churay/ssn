@@ -489,7 +489,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 
                 tallyCC.update( &ssn::color::INFO );
                 llce::gfx::render::text( teamText, llce::box_t(
-                    teamBox.center(),
+                    teamBox.mid(),
                     vec2f32_t(teamBox.mDims.x, 0.30f * teamBox.mDims.y),
                     llce::geom::anchor2D::mm) );
             }
