@@ -30,11 +30,11 @@ constexpr static particle_render_f PARTICLE_RENDER_FUNS[] = {
     particle_t::renderTrail
 };
 
-static_assert( ARRAY_LEN(PARTICLE_UPDATE_FUNS) == ssn::particle_t::type_e::length,
+static_assert( ARRAY_LEN(PARTICLE_UPDATE_FUNS) == ssn::particle_t::type_e::_length,
     "Incorrect number of particle update functions; "
     "please add all 'ssn::particle_t::update_*' functions to the "
     "'PARTICLE_UPDATE_FUNS' list in 'particles.cpp'." );
-static_assert( ARRAY_LEN(PARTICLE_RENDER_FUNS) == ssn::particle_t::type_e::length,
+static_assert( ARRAY_LEN(PARTICLE_RENDER_FUNS) == ssn::particle_t::type_e::_length,
     "Incorrect number of particle render functions; "
     "please add all 'ssn::particle_t::render_*' functions to the "
     "'PARTICLE_RENDER_FUNS' list in 'particles.cpp'." );

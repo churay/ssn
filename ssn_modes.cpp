@@ -13,6 +13,7 @@
 #include "gfx.h"
 #include "sfx.h"
 #include "geom.h"
+#include "util.hpp"
 
 #include "ssn_modes.h"
 #include "ssn_data.h"
@@ -35,6 +36,15 @@ constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
 constexpr static char8_t RESET_ITEM_TEXT[][8] = { "REPLAY", "EXIT  " };
 constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
+
+static_assert( ARRAY_LEN(STAGE_DIMENSIONS) == ssn::stage_e::_length,
+    "Incorrect number of stage specifications; "
+    "please add the dimension specifications of all stages in enumeration "
+    "'ssn::stage::stage_e' to the array 'STAGE_DIMENSIONS' in 'ssn_consts.h'." );
+static_assert( SELECT_ITEM_COUNT == ssn::stage_e::_length,
+    "Incorrect number of stage select options; "
+    "please add all stages in enumeration 'ssn::stage::stage_e' as string "
+    "selections to 'SELECT_ITEM_TEXT' in 'ssn_modes.cpp'." );
 
 /// Helper Functions ///
 
@@ -226,9 +236,9 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 /// 'ssn::mode::select' Functions  ///
 
 bool32_t select::init( ssn::state_t* pState ) {
-    const char8_t* cSelectItems[] = { &SELECT_ITEM_TEXT[0][0], &SELECT_ITEM_TEXT[1][0], &SELECT_ITEM_TEXT[2][0], &SELECT_ITEM_TEXT[3][0] };
+    auto cSelectItems = llce::util::pointerize( SELECT_ITEM_TEXT );
     pState->selectMenu = llce::gui::menu_t( "STAGE",
-        cSelectItems, SELECT_ITEM_COUNT,
+        cSelectItems.data(), SELECT_ITEM_COUNT,
         &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
         &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
 
@@ -257,9 +267,9 @@ bool32_t select::render( const ssn::state_t* pState, const ssn::input_t* pInput,
 /// 'ssn::mode::title' Functions  ///
 
 bool32_t title::init( ssn::state_t* pState ) {
-    const char8_t* cTitleItems[] = { &TITLE_ITEM_TEXT[0][0], &TITLE_ITEM_TEXT[1][0] };
+    auto cTitleItems = llce::util::pointerize( TITLE_ITEM_TEXT );
     pState->titleMenu = llce::gui::menu_t( "SSN",
-        cTitleItems, TITLE_ITEM_COUNT,
+        cTitleItems.data(), TITLE_ITEM_COUNT,
         &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
         &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
 
@@ -522,9 +532,9 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 /// 'ssn::mode::reset' Functions  ///
 
 bool32_t reset::init( ssn::state_t* pState ) {
-    const char8_t* cResetItems[] = { &RESET_ITEM_TEXT[0][0], &RESET_ITEM_TEXT[1][0] };
+    auto cResetItems = llce::util::pointerize( RESET_ITEM_TEXT );
     pState->resetMenu = llce::gui::menu_t( "GAME!",
-        cResetItems, RESET_ITEM_COUNT,
+        cResetItems.data(), RESET_ITEM_COUNT,
         &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
         &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
 

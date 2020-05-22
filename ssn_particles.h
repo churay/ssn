@@ -19,7 +19,7 @@ class particle_t {
 
     /// Class Attributes ///
 
-    enum type_e { undefined = 0, hit, trail, length };
+    enum type_e { undefined = 0, hit, trail, _length };
 
     /// Constructors ///
 

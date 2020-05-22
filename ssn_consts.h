@@ -7,8 +7,8 @@ namespace ssn {
 
 /// Global Constants ///
 
-namespace team { enum team_e { left = 0, right, neutral }; };
-namespace stage { enum stage_e { box = 0, vert, horz, wild }; };
+namespace team { enum team_e { left = 0, right, neutral, _length }; };
+namespace stage { enum stage_e { box = 0, vert, horz, wild, _length }; };
 
 typedef int8_t mode_e;
 typedef team::team_e team_e;
