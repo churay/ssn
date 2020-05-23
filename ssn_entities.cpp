@@ -40,9 +40,14 @@ bounds_t::bounds_t( const llce::box_t& pBBox ) :
 
 
 void bounds_t::render() const {
-    llce::gfx::render_context_t entityRC( mBBox );
+    // TODO(JRC): The 'bounds_t' annotations aren't rendered relative to the
+    // 'bounds_t' bounding space, which means they can interfere with graphics
+    // displayed outside of this space. Abstractly speaking, this makes sense
+    // because the annotations are relative to the world and not to the 'bounds_t'
+    // container object, though it may lead to trouble should the world be changed
+    // to have a different reference frame at some point in the future.
     llce::gfx::color_context_t entityCC( mColor );
-    llce::gfx::render::box();
+    llce::gfx::render::box( mBBox );
 
     glBegin( GL_TRIANGLES );
     for( uint32_t areaIdx = 0; areaIdx < mAreaCount; areaIdx++ ) {
@@ -54,15 +59,14 @@ void bounds_t::render() const {
     }
     glEnd();
 
-    const float32_t cCornerRadius = mBBox.xbounds().length() * bounds_t::CORNER_RATIO;
     for( uint32_t cornerIdx = 0; cornerIdx < mCurrAreaCount; cornerIdx++ ) {
         entityCC.update( &ssn::color::INTERFACE );
         llce::gfx::render::circle(
-            llce::circle_t(mCurrAreaCorners[cornerIdx], cCornerRadius) );
+            llce::circle_t(mCurrAreaCorners[cornerIdx], bounds_t::CORNER_RATIO) );
 
         entityCC.update( &ssn::color::TEAM[mCurrAreaTeam] );
         llce::gfx::render::circle(
-            llce::circle_t(mCurrAreaCorners[cornerIdx], 0.75f * cCornerRadius) );
+            llce::circle_t(mCurrAreaCorners[cornerIdx], 0.75f * bounds_t::CORNER_RATIO) );
     }
 }
 

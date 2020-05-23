@@ -136,19 +136,32 @@ bool32_t game::init( ssn::state_t* pState ) {
 
     // { // Testing Score Calculations //
     //     ssn::team_entity_t testEntity( llce::circle_t(0.0f, 0.0f, 0.0f), ssn::team::right );
+    //     const llce::box_t& testBBox = pState->bounds.mBBox;
 
-    //     const vec2f32_t cTestAreas[2][3] = {
-    //         {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}},
-    //         {{0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f}} };
-    //     const ssn::team::team_e cTestTeams[] = {
-    //         ssn::team::right,   // r score: 0.25
-    //         ssn::team::left };  // l score: 0.5
+    //     // const vec2f32_t cTestAreas[2][3] = {
+    //     //     {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}},
+    //     //     {{0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f}} };
+    //     // const ssn::team::team_e cTestTeams[] = {
+    //     //     ssn::team::right,   // r score: 0.25
+    //     //     ssn::team::left };  // l score: 0.5
     //     // const vec2f32_t cTestAreas[2][3] = {
     //     //     {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}},
     //     //     {{0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}} };
     //     // const ssn::team::team_e cTestTeams[] = {
-    //     //     ssn::team::left,   // l score: 0.5
-    //     //     ssn::team::left }; // l score: 0.5
+    //     //     ssn::team::left,
+    //     //     ssn::team::left }; // l score: 1.0
+    //     const vec2f32_t cTestAreas[2][3] = { {
+    //             testBBox.at(llce::geom::anchor2D::ll),
+    //             testBBox.at(llce::geom::anchor2D::hl),
+    //             testBBox.at(llce::geom::anchor2D::hh)
+    //         }, {
+    //             testBBox.at(llce::geom::anchor2D::ll),
+    //             testBBox.at(llce::geom::anchor2D::hh),
+    //             testBBox.at(llce::geom::anchor2D::lh)
+    //         } };
+    //     const ssn::team::team_e cTestTeams[] = {
+    //         ssn::team::left,    // l score: 0.5
+    //         ssn::team::right }; // r score: 0.5
     //     const uint32_t cTestAreaCount = ARRAY_LEN( cTestAreas );
     //     for( uint32_t areaIdx = 0; areaIdx < cTestAreaCount; areaIdx++ ) {
     //         testEntity.change( cTestTeams[areaIdx] );
@@ -485,9 +498,10 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             llce::gfx::render::box();
 
             for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+                const float32_t cTeamScore = pState->scoreTotals[team] / pState->bounds.mBBox.area();
+
                 llce::box_t teamBox(
-                    team == ssn::team::left ? 0.0f : 1.0f, 0.0f,
-                    pState->scoreTotals[team], 1.0f,
+                    team == ssn::team::left ? 0.0f : 1.0f, 0.0f, cTeamScore, 1.0f,
                     team == ssn::team::left ? llce::geom::anchor2D::ll : llce::geom::anchor2D::hl );
 
                 tallyCC.update( &ssn::color::TEAM[team] );
@@ -495,7 +509,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 
                 char8_t teamText[8];
                 std::snprintf( &teamText[0], ARRAY_LEN(teamText), "%0.2f%%",
-                    glm::clamp(100.0f * pState->scoreTotals[team], 0.0f, 100.0f) );
+                    glm::clamp(100.0f * cTeamScore, 0.0f, 100.0f) );
 
                 tallyCC.update( &ssn::color::INFO );
                 llce::gfx::render::text( teamText, llce::box_t(
