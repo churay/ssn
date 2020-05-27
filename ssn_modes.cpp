@@ -485,14 +485,6 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             const static vec2f32_t csProgressBarDims = { 1.0f - 2.0f * csProgressPadding, 0.1f };
             const static vec2f32_t csProgressBarPos = { csProgressPadding, csProgressPadding };
 
-            const static float32_t csProgressBarAspect = llce::gfx::aspect( csProgressBarDims );
-            const float32_t csProgressBorderSizes[] = {
-                1.0e-2f * csProgressBarAspect,  // y=ymin
-                1.0e-2f,                        // x=xmax
-                1.0e-2f * csProgressBarAspect,  // y=ymax
-                1.0e-2f,                        // x=xmin
-            };
-
             llce::gfx::render_context_t progressRC( llce::box_t(csProgressBarPos, csProgressBarDims) );
             tallyCC.update( &ssn::color::FOREGROUND );
             llce::gfx::render::box();
@@ -519,7 +511,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
             }
 
             tallyCC.update( &ssn::color::INFO );
-            llce::gfx::render::border( csProgressBorderSizes );
+            llce::gfx::render::border( 1.0e-2f, 0 );
         }
 
         return true;
