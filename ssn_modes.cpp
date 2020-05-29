@@ -30,21 +30,26 @@ typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ss
 
 constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 2.0, 1.0 };
 
-constexpr static char8_t SELECT_ITEM_TEXT[][8] = { "BOX ", "VERT", "HORZ", "WILD" };
-constexpr static uint32_t SELECT_ITEM_COUNT = ARRAY_LEN( SELECT_ITEM_TEXT );
 constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
 constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
 constexpr static char8_t RESET_ITEM_TEXT[][8] = { "REPLAY", "EXIT  " };
 constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
 
-static_assert( ARRAY_LEN(STAGE_DIMENSIONS) == ssn::stage_e::_length,
+constexpr static vec2u32_t SELECT_ITEM_DIMS = { 4, 2 };
+constexpr static uint32_t SELECT_ITEM_COUNT = SELECT_ITEM_DIMS.x * SELECT_ITEM_DIMS.y;
+
+static_assert( ARRAY_LEN(STAGE_SPECS) == ssn::stage_e::_length,
     "Incorrect number of stage specifications; "
     "please add the dimension specifications of all stages in enumeration "
-    "'ssn::stage::stage_e' to the array 'STAGE_DIMENSIONS' in 'ssn_consts.h'." );
-static_assert( SELECT_ITEM_COUNT == ssn::stage_e::_length,
-    "Incorrect number of stage select options; "
-    "please add all stages in enumeration 'ssn::stage::stage_e' as string "
-    "selections to 'SELECT_ITEM_TEXT' in 'ssn_modes.cpp'." );
+    "'ssn::stage::stage_e' to the array 'STAGE_SPECS' in 'ssn_consts.h'." );
+static_assert( ARRAY_LEN(STAGE_NAMES) == ssn::stage_e::_length,
+    "Incorrect number of stage names; "
+    "please add the names of all stages in enumeration "
+    "'ssn::stage::stage_e' to the array 'STAGE_NAMES' in 'ssn_consts.h'." );
+static_assert( SELECT_ITEM_COUNT >= ssn::stage_e::_length,
+    "Insufficient number of selection items; "
+    "please add enough selection items to cover all stages in enumeration "
+    "'ssn::stage::stage_e' to the array 'SELCT_ITEM_DIMS' in 'ssn_modes.cpp'." );
 
 /// Helper Functions ///
 
@@ -115,7 +120,7 @@ bool32_t game::init( ssn::state_t* pState ) {
     pState->ht = 0.0;
 
     const vec2f32_t cStageCenter( 0.5f, 0.5f );
-    const vec2f32_t cStageDims = ssn::STAGE_DIMENSIONS[pState->sid];
+    const vec2f32_t cStageDims = ssn::STAGE_SPECS[pState->sid];
     const float32_t cPaddleRadius = 5.0e-2f;
     const float32_t cPuckRadius = cPaddleRadius * 6.0e-1f;
 
@@ -193,7 +198,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
             paddleInput.x += 1;
         }
 
-        if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_E) ) {
+        if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_E) ) {
             rushInput = true;
         }
     }
@@ -249,22 +254,47 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 /// 'ssn::mode::select' Functions  ///
 
 bool32_t select::init( ssn::state_t* pState ) {
-    auto cSelectItems = llce::util::pointerize( SELECT_ITEM_TEXT );
-    pState->selectMenu = llce::gui::menu_t( "STAGE",
-        cSelectItems.data(), SELECT_ITEM_COUNT,
-        &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
-        &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+    pState->selectMenuIndex = 0;
 
     return true;
 }
 
 
 bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    const auto cMenuEvent = pState->selectMenu.update( pInput->keyboard(), pDT );
-    const uint32_t cMenuIndex = pState->selectMenu.mSelectIndex;
+    vec2i32_t menuInput( 0, 0 );
+    bool32_t menuSelected = false;
 
-    if( cMenuEvent == llce::gui::event_e::select ) {
-        pState->sid = static_cast<ssn::stage_e>( cMenuIndex );
+    { // Input Processing //
+        const static SDL_Scancode csSelectKG[] = { SDL_SCANCODE_E, SDL_SCANCODE_O };
+        const static SDL_Scancode csUpKG[] = { SDL_SCANCODE_W, SDL_SCANCODE_I };
+        const static SDL_Scancode csDownKG[] = { SDL_SCANCODE_S, SDL_SCANCODE_K };
+        const static SDL_Scancode csLeftKG[] = { SDL_SCANCODE_A, SDL_SCANCODE_J };
+        const static SDL_Scancode csRightKG[] = { SDL_SCANCODE_D, SDL_SCANCODE_L };
+        const static uint32_t csKGSize = 2;
+
+        if( llce::input::isKGPressed(pInput->keyboard(), &csUpKG[0], csKGSize) ) {
+            menuInput.y -= 1;
+        } if( llce::input::isKGPressed(pInput->keyboard(), &csDownKG[0], csKGSize) ) {
+            menuInput.y += 1;
+        } if( llce::input::isKGPressed(pInput->keyboard(), &csLeftKG[0], csKGSize) ) {
+            menuInput.x -= 1;
+        } if( llce::input::isKGPressed(pInput->keyboard(), &csRightKG[0], csKGSize) ) {
+            menuInput.x += 1;
+        }
+
+        if( llce::input::isKGPressed(pInput->keyboard(), &csSelectKG[0], csKGSize) ) {
+            menuSelected = true;
+        }
+    }
+
+    int32_t newSelectMenuIndex = pState->selectMenuIndex +
+        ( SELECT_ITEM_DIMS.x * menuInput.y ) + menuInput.x;
+    if( newSelectMenuIndex >= 0 && newSelectMenuIndex < ssn::stage::_length ) {
+        pState->selectMenuIndex = static_cast<int8_t>( newSelectMenuIndex );
+    }
+
+    if( menuSelected ) {
+        pState->sid = static_cast<ssn::stage_e>( pState->selectMenuIndex );
         pState->pmode = ssn::mode::game::ID;
     }
 
@@ -272,7 +302,71 @@ bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float
 }
 
 bool32_t select::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    pState->selectMenu.render();
+    llce::gfx::color_context_t selectCC( &ssn::color::BACKGROUND );
+    llce::gfx::render::box();
+
+    const static float32_t csSectionPadding = 5.0e-2f;
+    const static llce::box_t csHeaderArea( 0.0f, 0.5f, 1.0f, 0.5f );
+    const static llce::box_t csItemArea( 0.0f, 0.0f, 1.0f, 0.5f );
+
+    const static auto csRenderStagePreview = [] ( const uint32_t pStage ) {
+        const static float32_t csRenderPadding = 5.0e-2f;
+        const static float32_t csPreviewDim = 1.0f - 2.0f * csRenderPadding;
+        const static llce::box_t csPaddedBox(
+            0.5f, 0.5f, csPreviewDim, csPreviewDim, llce::geom::anchor2D::mm );
+
+        const vec2f32_t cStageDims = ssn::STAGE_SPECS[pStage];
+        const char8_t* cStageName = &ssn::STAGE_NAMES[pStage][0];
+
+        llce::gfx::color_context_t stageCC( &ssn::color::TEAM[ssn::team::neutral] );
+        llce::gfx::render::box();
+
+        llce::gfx::render_context_t stageRC( csPaddedBox );
+        stageCC.update( &ssn::color::OUTOFBOUND );
+        llce::gfx::render::box();
+
+        stageCC.update( &ssn::color::BACKGROUND );
+        llce::gfx::render::box( llce::box_t(
+            vec2f32_t(0.5f, 0.5f), cStageDims, llce::geom::anchor2D::mm) );
+
+        stageCC.update( &ssn::color::INFOLL );
+        llce::gfx::render::text( cStageName, csPaddedBox );
+    };
+
+    { // Header //
+        llce::gfx::render_context_t headerRC( csHeaderArea );
+        llce::gfx::render_context_t previewRC( llce::box_t(
+            0.5f, 0.5f, 1.0f - csSectionPadding, 1.0f - csSectionPadding,
+            llce::geom::anchor2D::mm), 1.0f );
+        csRenderStagePreview( pState->selectMenuIndex );
+    }
+
+    { // Items //
+        const static vec2f32_t csItemDims(
+            csItemArea.mDims.x / SELECT_ITEM_DIMS.x,
+            csItemArea.mDims.y / SELECT_ITEM_DIMS.y );
+        const static vec2f32_t csItemPaddedDims(
+            csItemDims.x - csSectionPadding,
+            csItemDims.y - csSectionPadding );
+
+        for( uint32_t yIdx = SELECT_ITEM_DIMS.y, itemIdx = 0; yIdx-- > 0; ) {
+            for( uint32_t xIdx = 0; xIdx < SELECT_ITEM_DIMS.x; xIdx++, itemIdx++ ) {
+                const vec2f32_t cItemPos( xIdx * csItemDims.x, yIdx * csItemDims.y );
+                const llce::box_t cItemBox( cItemPos, csItemDims );
+
+                if( itemIdx == pState->selectMenuIndex ) {
+                    selectCC.update( &ssn::color::FOREGROUND );
+                    llce::gfx::render::box( cItemBox );
+                }
+
+                if( itemIdx < ssn::stage::_length ) {
+                    llce::gfx::render_context_t itemRC( llce::box_t(
+                        cItemBox.mid(), csItemPaddedDims, llce::geom::anchor2D::mm) );
+                    csRenderStagePreview( itemIdx );
+                }
+            }
+        }
+    }
 
     return true;
 }

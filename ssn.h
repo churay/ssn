@@ -47,8 +47,8 @@ struct state_t {
 
     // Menu State //
     llce::gui::menu_t titleMenu;
-    llce::gui::menu_t selectMenu;
     llce::gui::menu_t resetMenu;
+    uint8_t selectMenuIndex;
 };
 
 /// Input/Output Types/Variables ///

@@ -16,7 +16,18 @@ typedef stage::stage_e stage_e;
 
 /// Game State Constants ///
 
-constexpr static vec2f32_t STAGE_DIMENSIONS[] = { {1.0f, 1.0f}, {0.75f, 1.0f}, {1.0f, 0.75f}, {0.60f, 0.80f} };
+constexpr static vec2f32_t STAGE_SPECS[] = {
+    {1.0f, 1.0f},
+    {0.75f, 1.0f},
+    {1.0f, 0.75f},
+    {0.60f, 0.80f}
+};
+constexpr static char8_t STAGE_NAMES[][8] = {
+    "BOX",
+    "VERT",
+    "HORZ",
+    "WILD"
+};
 
 constexpr static float64_t HIT_DURATION = 0.3; // units: seconds
 constexpr static float64_t ROUND_DURATION = 1.0; // units: seconds
