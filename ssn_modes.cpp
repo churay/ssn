@@ -25,8 +25,21 @@ namespace mode {
 
 /// Helper Structures ///
 
+// Helper Types //
+
 typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t, const float64_t );
 typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
+
+// Input Data //
+
+constexpr static SDL_Scancode TEAM_SELECT_KG[] = { SDL_SCANCODE_E, SDL_SCANCODE_O };
+constexpr static SDL_Scancode TEAM_UP_KG[] = { SDL_SCANCODE_W, SDL_SCANCODE_I };
+constexpr static SDL_Scancode TEAM_DOWN_KG[] = { SDL_SCANCODE_S, SDL_SCANCODE_K };
+constexpr static SDL_Scancode TEAM_LEFT_KG[] = { SDL_SCANCODE_A, SDL_SCANCODE_J };
+constexpr static SDL_Scancode TEAM_RIGHT_KG[] = { SDL_SCANCODE_D, SDL_SCANCODE_L };
+constexpr static uint32_t TEAM_KG_COUNT = ARRAY_LEN( TEAM_SELECT_KG );
+
+// Per-Mode Data //
 
 constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 2.0, 1.0 };
 
@@ -37,6 +50,8 @@ constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
 
 constexpr static vec2u32_t SELECT_ITEM_DIMS = { 4, 2 };
 constexpr static uint32_t SELECT_ITEM_COUNT = SELECT_ITEM_DIMS.x * SELECT_ITEM_DIMS.y;
+
+// Helper Assertions //
 
 static_assert( ARRAY_LEN(STAGE_SPECS) == ssn::stage_e::_length,
     "Incorrect number of stage specifications; "
@@ -53,7 +68,7 @@ static_assert( SELECT_ITEM_COUNT >= ssn::stage_e::_length,
 
 /// Helper Functions ///
 
-void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
+void gameboard_render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
     const ssn::bounds_t* const bounds = &pState->bounds;
     const ssn::puck_t* const puck = &pState->puck;
     const ssn::paddle_t* const paddle = &pState->paddle;
@@ -110,6 +125,19 @@ void render_gameboard( const ssn::state_t* pState, const ssn::input_t* pInput, c
             }
         } glPopMatrix();
         glPopAttrib();
+    }
+}
+
+
+void menu_update( llce::gui::menu_t& pMenu, const ssn::input_t* pInput ) {
+    if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_UP_KG[0], TEAM_KG_COUNT) ) {
+        pMenu.submit( llce::gui::event_e::prev );
+    } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_DOWN_KG[0], TEAM_KG_COUNT) ) {
+        pMenu.submit( llce::gui::event_e::next );
+    }
+
+    if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_SELECT_KG[0], TEAM_KG_COUNT) ) {
+        pMenu.submit( llce::gui::event_e::select );
     }
 }
 
@@ -188,17 +216,17 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
     bool32_t rushInput = false;
 
     { // Input Processing //
-        if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_W) ) {
+        if( llce::input::isKGDown(pInput->keyboard(), &TEAM_UP_KG[0], TEAM_KG_COUNT) ) {
             paddleInput.y += 1;
-        } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_S) ) {
+        } if( llce::input::isKGDown(pInput->keyboard(), &TEAM_DOWN_KG[0], TEAM_KG_COUNT) ) {
             paddleInput.y -= 1;
-        } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_A) ) {
+        } if( llce::input::isKGDown(pInput->keyboard(), &TEAM_LEFT_KG[0], TEAM_KG_COUNT) ) {
             paddleInput.x -= 1;
-        } if( llce::input::isKeyDown(pInput->keyboard(), SDL_SCANCODE_D) ) {
+        } if( llce::input::isKGDown(pInput->keyboard(), &TEAM_RIGHT_KG[0], TEAM_KG_COUNT) ) {
             paddleInput.x += 1;
         }
 
-        if( llce::input::isKeyPressed(pInput->keyboard(), SDL_SCANCODE_E) ) {
+        if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_SELECT_KG[0], TEAM_KG_COUNT) ) {
             rushInput = true;
         }
     }
@@ -246,7 +274,7 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
 
 
 bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
-    render_gameboard( pState, pInput, pOutput );
+    gameboard_render( pState, pInput, pOutput );
 
     return true;
 }
@@ -265,24 +293,17 @@ bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float
     bool32_t menuSelected = false;
 
     { // Input Processing //
-        const static SDL_Scancode csSelectKG[] = { SDL_SCANCODE_E, SDL_SCANCODE_O };
-        const static SDL_Scancode csUpKG[] = { SDL_SCANCODE_W, SDL_SCANCODE_I };
-        const static SDL_Scancode csDownKG[] = { SDL_SCANCODE_S, SDL_SCANCODE_K };
-        const static SDL_Scancode csLeftKG[] = { SDL_SCANCODE_A, SDL_SCANCODE_J };
-        const static SDL_Scancode csRightKG[] = { SDL_SCANCODE_D, SDL_SCANCODE_L };
-        const static uint32_t csKGSize = 2;
-
-        if( llce::input::isKGPressed(pInput->keyboard(), &csUpKG[0], csKGSize) ) {
+        if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_UP_KG[0], TEAM_KG_COUNT) ) {
             menuInput.y -= 1;
-        } if( llce::input::isKGPressed(pInput->keyboard(), &csDownKG[0], csKGSize) ) {
+        } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_DOWN_KG[0], TEAM_KG_COUNT) ) {
             menuInput.y += 1;
-        } if( llce::input::isKGPressed(pInput->keyboard(), &csLeftKG[0], csKGSize) ) {
+        } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_LEFT_KG[0], TEAM_KG_COUNT) ) {
             menuInput.x -= 1;
-        } if( llce::input::isKGPressed(pInput->keyboard(), &csRightKG[0], csKGSize) ) {
+        } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_RIGHT_KG[0], TEAM_KG_COUNT) ) {
             menuInput.x += 1;
         }
 
-        if( llce::input::isKGPressed(pInput->keyboard(), &csSelectKG[0], csKGSize) ) {
+        if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_SELECT_KG[0], TEAM_KG_COUNT) ) {
             menuSelected = true;
         }
     }
@@ -385,13 +406,13 @@ bool32_t title::init( ssn::state_t* pState ) {
 
 
 bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    const auto cMenuEvent = pState->titleMenu.update( pInput->keyboard(), pDT );
-    const uint32_t cMenuIndex = pState->titleMenu.mSelectIndex;
+    menu_update( pState->titleMenu, pInput );
+    pState->titleMenu.update( pDT );
 
-    if( cMenuEvent == llce::gui::event_e::select ) {
-        if( cMenuIndex == 0 ) {
+    if( pState->titleMenu.mSelected ) {
+        if( pState->titleMenu.mSelectIndex == 0 ) {
             pState->pmode = ssn::mode::select::ID;
-        } else if( cMenuIndex == 1 ) {
+        } else if( pState->titleMenu.mSelectIndex == 1 ) {
             pState->pmode = ssn::mode::exit::ID;
         }
     }
@@ -615,7 +636,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 
     bool32_t phaseResult = true;
 
-    render_gameboard( pState, pInput, pOutput );
+    gameboard_render( pState, pInput, pOutput );
 
     float64_t phaseMin = 0.0, phaseMax = 0.0;
     for( uint32_t phaseIdx = 0; phaseIdx < ARRAY_LEN(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
@@ -643,13 +664,13 @@ bool32_t reset::init( ssn::state_t* pState ) {
 
 
 bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    const auto cMenuEvent = pState->resetMenu.update( pInput->keyboard(), pDT );
-    const uint32_t cMenuIndex = pState->resetMenu.mSelectIndex;
+    menu_update( pState->resetMenu, pInput );
+    pState->resetMenu.update( pDT );
 
-    if( cMenuEvent == llce::gui::event_e::select ) {
-        if( cMenuIndex == 0 ) {
+    if( pState->resetMenu.mSelected ) {
+        if( pState->resetMenu.mSelectIndex == 0 ) {
             pState->pmode = ssn::mode::select::ID;
-        } else if( cMenuIndex == 1 ) {
+        } else if( pState->resetMenu.mSelectIndex == 1 ) {
             pState->pmode = ssn::mode::title::ID;
         }
     }
