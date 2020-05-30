@@ -658,6 +658,7 @@ bool32_t reset::init( ssn::state_t* pState ) {
         cResetItems.data(), RESET_ITEM_COUNT,
         &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
         &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+    pState->resetMenuUpdated = false;
 
     return true;
 }
@@ -675,7 +676,7 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
         }
     }
 
-    { // Set Render Header Based on Winner //
+    if( !pState->resetMenuUpdated ) { // Set Render Header Based on Winner //
         const float32_t* cScores = &pState->scoreTotals[0];
         const char8_t cTeamNames[3][8] = { "LEFT", "RIGHT", "NOBODY" };
         const auto cTeamWinner = (
@@ -690,6 +691,7 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
         std::strcpy( &pState->resetMenu.mTitle[0], &headerText[0] );
         pState->resetMenu.mTitleColor = headerColor;
+        pState->resetMenuUpdated = true;
     }
 
     return true;
