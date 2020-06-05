@@ -63,7 +63,35 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     // Initialize Input //
 
+    // TODO(JRC): Clean this up if at all possible! The use of a 'defaultActions'
+    // identity map is particularly aggregious; perhaps just assume all actions are
+    // mapped in the range [0,...LLCE_MAX_ACTIONS]?
+    uint32_t defaultActions[ssn::action::_length];
+    uint32_t defaultBindings[ssn::action::_length]; {
+        defaultActions[ssn::action::lup] = ssn::action::lup;
+        defaultBindings[ssn::action::lup] = llce::input::stream_t( SDL_SCANCODE_W, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::ldown] = ssn::action::ldown;
+        defaultBindings[ssn::action::ldown] = llce::input::stream_t( SDL_SCANCODE_S, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::lleft] = ssn::action::lleft;
+        defaultBindings[ssn::action::lleft] = llce::input::stream_t( SDL_SCANCODE_A, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::lright] = ssn::action::lright;
+        defaultBindings[ssn::action::lright] = llce::input::stream_t( SDL_SCANCODE_D, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::lrush] = ssn::action::lrush;
+        defaultBindings[ssn::action::lrush] = llce::input::stream_t( SDL_SCANCODE_E, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::rup] = ssn::action::rup;
+        defaultBindings[ssn::action::rup] = llce::input::stream_t( SDL_SCANCODE_I, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::rdown] = ssn::action::rdown;
+        defaultBindings[ssn::action::rdown] = llce::input::stream_t( SDL_SCANCODE_K, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::rleft] = ssn::action::rleft;
+        defaultBindings[ssn::action::rleft] = llce::input::stream_t( SDL_SCANCODE_J, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::rright] = ssn::action::rright;
+        defaultBindings[ssn::action::rright] = llce::input::stream_t( SDL_SCANCODE_L, llce::input::device_e::keyboard );
+        defaultActions[ssn::action::rrush] = ssn::action::rrush;
+        defaultBindings[ssn::action::rrush] = llce::input::stream_t( SDL_SCANCODE_O, llce::input::device_e::keyboard );
+    }
+
     std::memset( pInput, 0, sizeof(ssn::input_t) );
+    pInput->binding = llce::input::binding_t( &defaultActions[0], &defaultBindings[0], ssn::action::_length );
 
     // Initialize Per-Mode Variables //
 

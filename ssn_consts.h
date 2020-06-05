@@ -7,14 +7,27 @@ namespace ssn {
 
 /// Global Constants ///
 
-namespace team { enum team_e { left = 0, right, neutral, _length }; };
-namespace stage { enum stage_e { box = 0, vert, horz, wild, _length }; };
+namespace action { enum action_e {
+    lup, ldown, lleft, lright, lrush,
+    rup, rdown, rleft, rright, rrush,
+    _length
+}; };
+typedef action::action_e action_e;
 
-typedef int8_t mode_e;
+namespace team { enum team_e { left = 0, right, neutral, _length }; };
 typedef team::team_e team_e;
+
+namespace stage { enum stage_e { box = 0, vert, horz, wild, _length }; };
 typedef stage::stage_e stage_e;
 
+typedef int32_t mode_e;
+
 /// Game State Constants ///
+
+constexpr static char8_t ACTION_NAMES[][32] = {
+    "MOVE UP (LEFT)", "MOVE DOWN (LEFT)", "MOVE LEFT (LEFT)", "MOVE RIGHT (LEFT)", "RUSH/SELECT (LEFT)",
+    "MOVE UP (RIGHT)", "MOVE DOWN (RIGHT)", "MOVE LEFT (RIGHT)", "MOVE RIGHT (RIGHT)", "RUSH/SELECT (RIGHT)",
+};
 
 constexpr static vec2f32_t STAGE_SPECS[] = {
     {1.0f, 1.0f},
