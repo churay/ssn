@@ -8,6 +8,7 @@ namespace ssn {
 /// Global Constants ///
 
 namespace action { enum action_e {
+    unbound = 0,
     lup, ldown, lleft, lright, lrush,
     rup, rdown, rleft, rright, rrush,
     _length
