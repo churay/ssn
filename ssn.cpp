@@ -18,6 +18,9 @@
 
 /// Global Declarations ///
 
+typedef llce::input::stream_t stream_t;
+typedef llce::input::device_e device_e;
+
 typedef bool32_t (*init_f)( ssn::state_t* );
 typedef bool32_t (*update_f)( ssn::state_t*, ssn::input_t*, const float64_t );
 typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
@@ -63,22 +66,21 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     // Initialize Input //
 
-    uint32_t defaultBindings[ssn::action::_length + 1]; {
-        defaultBindings[ssn::action::lup] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_W );
-        defaultBindings[ssn::action::ldown] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_S );
-        defaultBindings[ssn::action::lleft] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_A );
-        defaultBindings[ssn::action::lright] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_D );
-        defaultBindings[ssn::action::lrush] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_E );
-        defaultBindings[ssn::action::rup] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_I );
-        defaultBindings[ssn::action::rdown] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_K );
-        defaultBindings[ssn::action::rleft] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_J );
-        defaultBindings[ssn::action::rright] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_L );
-        defaultBindings[ssn::action::rrush] = llce::input::stream_t( llce::input::device_e::keyboard, SDL_SCANCODE_O );
-        defaultBindings[ssn::action::_length] = llce::input::stream_t( 0 );
-    }
-
     std::memset( pInput, 0, sizeof(ssn::input_t) );
-    pInput->binding = llce::input::binding_t( &defaultBindings[0] );
+
+    uint32_t defaultBindings[ssn::action::_length + 1]; {
+        defaultBindings[ssn::action::lup] = stream_t( device_e::keyboard, SDL_SCANCODE_W );
+        defaultBindings[ssn::action::ldown] = stream_t( device_e::keyboard, SDL_SCANCODE_S );
+        defaultBindings[ssn::action::lleft] = stream_t( device_e::keyboard, SDL_SCANCODE_A );
+        defaultBindings[ssn::action::lright] = stream_t( device_e::keyboard, SDL_SCANCODE_D );
+        defaultBindings[ssn::action::lrush] = stream_t( device_e::keyboard, SDL_SCANCODE_E );
+        defaultBindings[ssn::action::rup] = stream_t( device_e::keyboard, SDL_SCANCODE_I );
+        defaultBindings[ssn::action::rdown] = stream_t( device_e::keyboard, SDL_SCANCODE_K );
+        defaultBindings[ssn::action::rleft] = stream_t( device_e::keyboard, SDL_SCANCODE_J );
+        defaultBindings[ssn::action::rright] = stream_t( device_e::keyboard, SDL_SCANCODE_L );
+        defaultBindings[ssn::action::rrush] = stream_t( device_e::keyboard, SDL_SCANCODE_O );
+    }
+    pState->binding = llce::input::binding_t( &defaultBindings[0] );
 
     // Initialize Per-Mode Variables //
 

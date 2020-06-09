@@ -26,6 +26,7 @@ struct state_t {
     mode_e pmode; // pending mode
 
     llce::rng_t rng; // random number generator
+    llce::input::binding_t binding; // input binding
 
     // Game State //
     float64_t rt; // round time

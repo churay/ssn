@@ -32,12 +32,11 @@ typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ss
 
 // Input Data //
 
-constexpr static SDL_Scancode TEAM_SELECT_KG[] = { SDL_SCANCODE_E, SDL_SCANCODE_O };
-constexpr static SDL_Scancode TEAM_UP_KG[] = { SDL_SCANCODE_W, SDL_SCANCODE_I };
-constexpr static SDL_Scancode TEAM_DOWN_KG[] = { SDL_SCANCODE_S, SDL_SCANCODE_K };
-constexpr static SDL_Scancode TEAM_LEFT_KG[] = { SDL_SCANCODE_A, SDL_SCANCODE_J };
-constexpr static SDL_Scancode TEAM_RIGHT_KG[] = { SDL_SCANCODE_D, SDL_SCANCODE_L };
-constexpr static uint32_t TEAM_KG_COUNT = ARRAY_LEN( TEAM_SELECT_KG );
+constexpr static uint32_t TEAM_GO_ACTIONS[] = { ssn::action::lrush, ssn::action::rrush, ssn::action::unbound };
+constexpr static uint32_t TEAM_UP_ACTIONS[] = { ssn::action::lup, ssn::action::rup, ssn::action::unbound };
+constexpr static uint32_t TEAM_DOWN_ACTIONS[] = { ssn::action::ldown, ssn::action::rdown, ssn::action::unbound };
+constexpr static uint32_t TEAM_LEFT_ACTIONS[] = { ssn::action::lleft, ssn::action::rleft, ssn::action::unbound };
+constexpr static uint32_t TEAM_RIGHT_ACTIONS[] = { ssn::action::lright, ssn::action::rright, ssn::action::unbound };
 
 // Per-Mode Data //
 
@@ -129,14 +128,14 @@ void gameboard_render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 }
 
 
-void menu_update( llce::gui::menu_t& pMenu, const ssn::input_t* pInput ) {
-    if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_UP_KG[0], TEAM_KG_COUNT) ) {
+void menu_update( llce::gui::menu_t& pMenu, ssn::state_t* pState, const ssn::input_t* pInput ) {
+    if( llce::input::isPressed(pInput, &pState->binding, &TEAM_UP_ACTIONS[0]) ) {
         pMenu.submit( llce::gui::event_e::prev );
-    } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_DOWN_KG[0], TEAM_KG_COUNT) ) {
+    } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_DOWN_ACTIONS[0]) ) {
         pMenu.submit( llce::gui::event_e::next );
     }
 
-    if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_SELECT_KG[0], TEAM_KG_COUNT) ) {
+    if( llce::input::isPressed(pInput, &pState->binding, &TEAM_GO_ACTIONS[0]) ) {
         pMenu.submit( llce::gui::event_e::select );
     }
 }
@@ -216,17 +215,17 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
     bool32_t rushInput = false;
 
     { // Input Processing //
-        if( llce::input::isKGDown(pInput->keyboard(), &TEAM_UP_KG[0], TEAM_KG_COUNT) ) {
+        if( llce::input::isDown(pInput, &pState->binding, &TEAM_UP_ACTIONS[0]) ) {
             paddleInput.y += 1;
-        } if( llce::input::isKGDown(pInput->keyboard(), &TEAM_DOWN_KG[0], TEAM_KG_COUNT) ) {
+        } if( llce::input::isDown(pInput, &pState->binding, &TEAM_DOWN_ACTIONS[0]) ) {
             paddleInput.y -= 1;
-        } if( llce::input::isKGDown(pInput->keyboard(), &TEAM_LEFT_KG[0], TEAM_KG_COUNT) ) {
+        } if( llce::input::isDown(pInput, &pState->binding, &TEAM_LEFT_ACTIONS[0]) ) {
             paddleInput.x -= 1;
-        } if( llce::input::isKGDown(pInput->keyboard(), &TEAM_RIGHT_KG[0], TEAM_KG_COUNT) ) {
+        } if( llce::input::isDown(pInput, &pState->binding, &TEAM_RIGHT_ACTIONS[0]) ) {
             paddleInput.x += 1;
         }
 
-        if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_SELECT_KG[0], TEAM_KG_COUNT) ) {
+        if( llce::input::isPressed(pInput, &pState->binding, &TEAM_GO_ACTIONS[0]) ) {
             rushInput = true;
         }
     }
@@ -293,17 +292,17 @@ bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float
     bool32_t menuSelected = false;
 
     { // Input Processing //
-        if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_UP_KG[0], TEAM_KG_COUNT) ) {
+        if( llce::input::isPressed(pInput, &pState->binding, &TEAM_UP_ACTIONS[0]) ) {
             menuInput.y -= 1;
-        } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_DOWN_KG[0], TEAM_KG_COUNT) ) {
+        } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_DOWN_ACTIONS[0]) ) {
             menuInput.y += 1;
-        } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_LEFT_KG[0], TEAM_KG_COUNT) ) {
+        } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_LEFT_ACTIONS[0]) ) {
             menuInput.x -= 1;
-        } if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_RIGHT_KG[0], TEAM_KG_COUNT) ) {
+        } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_RIGHT_ACTIONS[0]) ) {
             menuInput.x += 1;
         }
 
-        if( llce::input::isKGPressed(pInput->keyboard(), &TEAM_SELECT_KG[0], TEAM_KG_COUNT) ) {
+        if( llce::input::isPressed(pInput, &pState->binding, &TEAM_GO_ACTIONS[0]) ) {
             menuSelected = true;
         }
     }
@@ -406,7 +405,7 @@ bool32_t title::init( ssn::state_t* pState ) {
 
 
 bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    menu_update( pState->titleMenu, pInput );
+    menu_update( pState->titleMenu, pState, pInput );
     pState->titleMenu.update( pDT );
 
     if( pState->titleMenu.mSelected ) {
@@ -665,7 +664,7 @@ bool32_t reset::init( ssn::state_t* pState ) {
 
 
 bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    menu_update( pState->resetMenu, pInput );
+    menu_update( pState->resetMenu, pState, pInput );
     pState->resetMenu.update( pDT );
 
     if( pState->resetMenu.mSelected ) {
