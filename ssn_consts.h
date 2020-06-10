@@ -7,19 +7,12 @@ namespace ssn {
 
 /// Global Constants ///
 
-namespace action { enum action_e {
-    unbound = 0,
+LLCE_ACTION_ENUM(
     lup, ldown, lleft, lright, lrush,
-    rup, rdown, rleft, rright, rrush,
-    _length
-}; };
-typedef action::action_e action_e;
+    rup, rdown, rleft, rright, rrush );
 
-namespace team { enum team_e { left = 0, right, neutral, _length }; };
-typedef team::team_e team_e;
-
-namespace stage { enum stage_e { box = 0, vert, horz, wild, _length }; };
-typedef stage::stage_e stage_e;
+LLCE_ENUM( team, left, right, neutral );
+LLCE_ENUM( stage, box, vert, horz, wild );
 
 typedef int32_t mode_e;
 
