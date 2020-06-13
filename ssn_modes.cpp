@@ -129,13 +129,13 @@ void gameboard_render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 
 
 void menu_update( llce::gui::menu_t& pMenu, ssn::state_t* pState, const ssn::input_t* pInput ) {
-    if( llce::input::isPressed(pInput, &pState->binding, &TEAM_UP_ACTIONS[0]) ) {
+    if( pInput->isPressedAct(&TEAM_UP_ACTIONS[0]) ) {
         pMenu.submit( llce::gui::event_e::prev );
-    } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_DOWN_ACTIONS[0]) ) {
+    } if( pInput->isPressedAct(&TEAM_DOWN_ACTIONS[0]) ) {
         pMenu.submit( llce::gui::event_e::next );
     }
 
-    if( llce::input::isPressed(pInput, &pState->binding, &TEAM_GO_ACTIONS[0]) ) {
+    if( pInput->isPressedAct(&TEAM_GO_ACTIONS[0]) ) {
         pMenu.submit( llce::gui::event_e::select );
     }
 }
@@ -215,17 +215,17 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
     bool32_t rushInput = false;
 
     { // Input Processing //
-        if( llce::input::isDown(pInput, &pState->binding, &TEAM_UP_ACTIONS[0]) ) {
+        if( pInput->isDownAct(&TEAM_UP_ACTIONS[0]) ) {
             paddleInput.y += 1;
-        } if( llce::input::isDown(pInput, &pState->binding, &TEAM_DOWN_ACTIONS[0]) ) {
+        } if( pInput->isDownAct(&TEAM_DOWN_ACTIONS[0]) ) {
             paddleInput.y -= 1;
-        } if( llce::input::isDown(pInput, &pState->binding, &TEAM_LEFT_ACTIONS[0]) ) {
+        } if( pInput->isDownAct(&TEAM_LEFT_ACTIONS[0]) ) {
             paddleInput.x -= 1;
-        } if( llce::input::isDown(pInput, &pState->binding, &TEAM_RIGHT_ACTIONS[0]) ) {
+        } if( pInput->isDownAct(&TEAM_RIGHT_ACTIONS[0]) ) {
             paddleInput.x += 1;
         }
 
-        if( llce::input::isPressed(pInput, &pState->binding, &TEAM_GO_ACTIONS[0]) ) {
+        if( pInput->isPressedAct(&TEAM_GO_ACTIONS[0]) ) {
             rushInput = true;
         }
     }
@@ -292,17 +292,17 @@ bool32_t select::update( ssn::state_t* pState, ssn::input_t* pInput, const float
     bool32_t menuSelected = false;
 
     { // Input Processing //
-        if( llce::input::isPressed(pInput, &pState->binding, &TEAM_UP_ACTIONS[0]) ) {
+        if( pInput->isPressedAct(&TEAM_UP_ACTIONS[0]) ) {
             menuInput.y -= 1;
-        } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_DOWN_ACTIONS[0]) ) {
+        } if( pInput->isPressedAct(&TEAM_DOWN_ACTIONS[0]) ) {
             menuInput.y += 1;
-        } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_LEFT_ACTIONS[0]) ) {
+        } if( pInput->isPressedAct(&TEAM_LEFT_ACTIONS[0]) ) {
             menuInput.x -= 1;
-        } if( llce::input::isPressed(pInput, &pState->binding, &TEAM_RIGHT_ACTIONS[0]) ) {
+        } if( pInput->isPressedAct(&TEAM_RIGHT_ACTIONS[0]) ) {
             menuInput.x += 1;
         }
 
-        if( llce::input::isPressed(pInput, &pState->binding, &TEAM_GO_ACTIONS[0]) ) {
+        if( pInput->isPressedAct(&TEAM_GO_ACTIONS[0]) ) {
             menuSelected = true;
         }
     }

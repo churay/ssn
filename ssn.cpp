@@ -80,7 +80,7 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
         defaultBindings[ssn::action::rright] = stream_t( device_e::keyboard, SDL_SCANCODE_L );
         defaultBindings[ssn::action::rrush] = stream_t( device_e::keyboard, SDL_SCANCODE_O );
     }
-    pState->binding = llce::input::binding_t( &defaultBindings[0] );
+    pInput->binding = llce::input::binding_t( &defaultBindings[0] );
 
     // Initialize Per-Mode Variables //
 
