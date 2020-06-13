@@ -38,6 +38,8 @@ constexpr static uint32_t TEAM_DOWN_ACTIONS[] = { ssn::action::ldown, ssn::actio
 constexpr static uint32_t TEAM_LEFT_ACTIONS[] = { ssn::action::lleft, ssn::action::rleft, ssn::action::unbound };
 constexpr static uint32_t TEAM_RIGHT_ACTIONS[] = { ssn::action::lright, ssn::action::rright, ssn::action::unbound };
 
+constexpr static uint32_t MENU_ACTIONS[] = { ssn::action::unbound, ssn::action::lrush, ssn::action::lup, ssn::action::ldown };
+
 // Per-Mode Data //
 
 constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 2.0, 1.0 };
@@ -127,22 +129,9 @@ void gameboard_render( const ssn::state_t* pState, const ssn::input_t* pInput, c
     }
 }
 
-
-void menu_update( llce::gui::menu_t& pMenu, ssn::state_t* pState, const ssn::input_t* pInput ) {
-    if( pInput->isPressedAct(&TEAM_UP_ACTIONS[0]) ) {
-        pMenu.submit( llce::gui::event_e::prev );
-    } if( pInput->isPressedAct(&TEAM_DOWN_ACTIONS[0]) ) {
-        pMenu.submit( llce::gui::event_e::next );
-    }
-
-    if( pInput->isPressedAct(&TEAM_GO_ACTIONS[0]) ) {
-        pMenu.submit( llce::gui::event_e::select );
-    }
-}
-
 /// 'ssn::mode::game' Functions  ///
 
-bool32_t game::init( ssn::state_t* pState ) {
+bool32_t game::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->rt = 0.0;
     pState->ht = 0.0;
 
@@ -280,7 +269,7 @@ bool32_t game::render( const ssn::state_t* pState, const ssn::input_t* pInput, c
 
 /// 'ssn::mode::select' Functions  ///
 
-bool32_t select::init( ssn::state_t* pState ) {
+bool32_t select::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->selectMenuIndex = 0;
 
     return true;
@@ -393,25 +382,26 @@ bool32_t select::render( const ssn::state_t* pState, const ssn::input_t* pInput,
 
 /// 'ssn::mode::title' Functions  ///
 
-bool32_t title::init( ssn::state_t* pState ) {
+bool32_t title::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     auto cTitleItems = llce::util::pointerize( TITLE_ITEM_TEXT );
-    pState->titleMenu = llce::gui::menu_t( "SSN",
-        cTitleItems.data(), TITLE_ITEM_COUNT,
-        &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
-        &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+    pState->titleMenu = llce::gui::menu_t(
+        pInput, &MENU_ACTIONS[0],
+        "SSN", cTitleItems.data(), TITLE_ITEM_COUNT,
+        &ssn::color::BACKGROUND,
+        &ssn::color::FOREGROUND,
+        &ssn::color::TEAM[ssn::team::neutral] );
 
     return true;
 }
 
 
 bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    menu_update( pState->titleMenu, pState, pInput );
     pState->titleMenu.update( pDT );
 
-    if( pState->titleMenu.mSelected ) {
-        if( pState->titleMenu.mSelectIndex == 0 ) {
+    if( pState->titleMenu.changed(llce::gui::event::select) ) {
+        if( pState->titleMenu.mItemIndex == 0 ) {
             pState->pmode = ssn::mode::select::ID;
-        } else if( pState->titleMenu.mSelectIndex == 1 ) {
+        } else if( pState->titleMenu.mItemIndex == 1 ) {
             pState->pmode = ssn::mode::exit::ID;
         }
     }
@@ -427,7 +417,7 @@ bool32_t title::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 
 /// 'ssn::mode::score' Functions  ///
 
-bool32_t score::init( ssn::state_t* pState ) {
+bool32_t score::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     std::memset( &pState->scoreTotals[0], 0, sizeof(pState->scoreTotals) );
     std::memset( &pState->scoreSamples[0], 0, sizeof(pState->scoreSamples) );
     pState->scoreTallied = false;
@@ -651,12 +641,14 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
 
 /// 'ssn::mode::reset' Functions  ///
 
-bool32_t reset::init( ssn::state_t* pState ) {
+bool32_t reset::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     auto cResetItems = llce::util::pointerize( RESET_ITEM_TEXT );
-    pState->resetMenu = llce::gui::menu_t( "GAME!",
-        cResetItems.data(), RESET_ITEM_COUNT,
-        &ssn::color::BACKGROUND, &ssn::color::FOREGROUND,
-        &ssn::color::TEAM[ssn::team::neutral], &ssn::color::FOREGROUND );
+    pState->resetMenu = llce::gui::menu_t(
+        pInput, &MENU_ACTIONS[0],
+        "GAME!", cResetItems.data(), RESET_ITEM_COUNT,
+        &ssn::color::BACKGROUND,
+        &ssn::color::FOREGROUND,
+        &ssn::color::TEAM[ssn::team::neutral] );
     pState->resetMenuUpdated = false;
 
     return true;
@@ -664,13 +656,12 @@ bool32_t reset::init( ssn::state_t* pState ) {
 
 
 bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    menu_update( pState->resetMenu, pState, pInput );
     pState->resetMenu.update( pDT );
 
-    if( pState->resetMenu.mSelected ) {
-        if( pState->resetMenu.mSelectIndex == 0 ) {
+    if( pState->resetMenu.changed(llce::gui::event::select) ) {
+        if( pState->resetMenu.mItemIndex == 0 ) {
             pState->pmode = ssn::mode::select::ID;
-        } else if( pState->resetMenu.mSelectIndex == 1 ) {
+        } else if( pState->resetMenu.mItemIndex == 1 ) {
             pState->pmode = ssn::mode::title::ID;
         }
     }
@@ -689,7 +680,7 @@ bool32_t reset::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
         const color4u8_t* headerColor = &ssn::color::TEAM[cTeamWinner];
 
         std::strcpy( &pState->resetMenu.mTitle[0], &headerText[0] );
-        pState->resetMenu.mTitleColor = headerColor;
+        pState->resetMenu.mColorText = headerColor;
         pState->resetMenuUpdated = true;
     }
 
