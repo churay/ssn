@@ -32,6 +32,13 @@ namespace mode {
         bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
     }
 
+    namespace bind {
+        constexpr static mode_e ID = 5;
+        bool32_t init( ssn::state_t*, ssn::input_t* );
+        bool32_t update( ssn::state_t*, ssn::input_t*, const float64_t );
+        bool32_t render( const ssn::state_t*, const ssn::input_t*, const ssn::output_t* );
+    }
+
     namespace score {
         constexpr static mode_e ID = 3;
         bool32_t init( ssn::state_t*, ssn::input_t* );

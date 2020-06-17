@@ -19,8 +19,8 @@ typedef int32_t mode_e;
 /// Game State Constants ///
 
 constexpr static char8_t ACTION_NAMES[][32] = {
-    "MOVE UP (LEFT)", "MOVE DOWN (LEFT)", "MOVE LEFT (LEFT)", "MOVE RIGHT (LEFT)", "RUSH/SELECT (LEFT)",
-    "MOVE UP (RIGHT)", "MOVE DOWN (RIGHT)", "MOVE LEFT (RIGHT)", "MOVE RIGHT (RIGHT)", "RUSH/SELECT (RIGHT)",
+    "MOVE UP (L)", "MOVE DOWN (L)", "MOVE LEFT (L)", "MOVE RIGHT (L)", "RUSH/SELECT (L)",
+    "MOVE UP (R)", "MOVE DOWN (R)", "MOVE LEFT (R)", "MOVE RIGHT (R)", "RUSH/SELECT (R)",
 };
 
 constexpr static vec2f32_t STAGE_SPECS[] = {

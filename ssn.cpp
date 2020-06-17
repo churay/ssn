@@ -28,11 +28,11 @@ typedef bool32_t (*render_f)( const ssn::state_t*, const ssn::input_t*, const ss
 /// Per-Mode Tables ///
 
 constexpr static init_f MODE_INIT_FUNS[] = {
-    ssn::mode::game::init, ssn::mode::select::init, ssn::mode::title::init, ssn::mode::score::init, ssn::mode::reset::init };
+    ssn::mode::game::init, ssn::mode::select::init, ssn::mode::title::init, ssn::mode::score::init, ssn::mode::reset::init, ssn::mode::bind::init };
 constexpr static update_f MODE_UPDATE_FUNS[] = {
-    ssn::mode::game::update, ssn::mode::select::update, ssn::mode::title::update, ssn::mode::score::update, ssn::mode::reset::update };
+    ssn::mode::game::update, ssn::mode::select::update, ssn::mode::title::update, ssn::mode::score::update, ssn::mode::reset::update, ssn::mode::bind::update };
 constexpr static render_f MODE_RENDER_FUNS[] = {
-    ssn::mode::game::render, ssn::mode::select::render, ssn::mode::title::render, ssn::mode::score::render, ssn::mode::reset::render };
+    ssn::mode::game::render, ssn::mode::select::render, ssn::mode::title::render, ssn::mode::score::render, ssn::mode::reset::render, ssn::mode::bind::render };
 constexpr static uint32_t MODE_COUNT = ARRAY_LEN( MODE_INIT_FUNS );
 
 /// Interface Functions ///
@@ -80,7 +80,7 @@ extern "C" bool32_t init( ssn::state_t* pState, ssn::input_t* pInput ) {
         defaultBindings[ssn::action::rright] = stream_t( device_e::keyboard, SDL_SCANCODE_L );
         defaultBindings[ssn::action::rrush] = stream_t( device_e::keyboard, SDL_SCANCODE_O );
     }
-    pInput->binding = llce::input::binding_t( &defaultBindings[0] );
+    pInput->mBinding = llce::input::binding_t( &defaultBindings[0] );
 
     // Initialize Per-Mode Variables //
 

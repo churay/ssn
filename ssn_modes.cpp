@@ -38,16 +38,14 @@ constexpr static uint32_t TEAM_DOWN_ACTIONS[] = { ssn::action::ldown, ssn::actio
 constexpr static uint32_t TEAM_LEFT_ACTIONS[] = { ssn::action::lleft, ssn::action::rleft, ssn::action::unbound };
 constexpr static uint32_t TEAM_RIGHT_ACTIONS[] = { ssn::action::lright, ssn::action::rright, ssn::action::unbound };
 
-constexpr static uint32_t MENU_ACTIONS[] = { ssn::action::unbound, ssn::action::lrush, ssn::action::lup, ssn::action::ldown };
+constexpr static uint32_t MENU_ACTIONS[] = { ssn::action::unbound, ssn::action::lrush, ssn::action::ldown, ssn::action::lup };
 
 // Per-Mode Data //
 
 constexpr static float64_t SCORE_PHASE_DURATIONS[] = { 1.0, 2.0, 1.0 };
 
-constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "EXIT " };
-constexpr static uint32_t TITLE_ITEM_COUNT = ARRAY_LEN( TITLE_ITEM_TEXT );
+constexpr static char8_t TITLE_ITEM_TEXT[][8] = { "START", "INPUT", "EXIT " };
 constexpr static char8_t RESET_ITEM_TEXT[][8] = { "REPLAY", "EXIT  " };
-constexpr static uint32_t RESET_ITEM_COUNT = ARRAY_LEN( RESET_ITEM_TEXT );
 
 constexpr static vec2u32_t SELECT_ITEM_DIMS = { 4, 2 };
 constexpr static uint32_t SELECT_ITEM_COUNT = SELECT_ITEM_DIMS.x * SELECT_ITEM_DIMS.y;
@@ -386,7 +384,7 @@ bool32_t title::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     auto cTitleItems = llce::util::pointerize( TITLE_ITEM_TEXT );
     pState->titleMenu = llce::gui::menu_t(
         pInput, &MENU_ACTIONS[0],
-        "SSN", cTitleItems.data(), TITLE_ITEM_COUNT,
+        "SSN", cTitleItems.data(), cTitleItems.size(),
         &ssn::color::BACKGROUND,
         &ssn::color::FOREGROUND,
         &ssn::color::TEAM[ssn::team::neutral] );
@@ -402,6 +400,8 @@ bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
         if( pState->titleMenu.mItemIndex == 0 ) {
             pState->pmode = ssn::mode::select::ID;
         } else if( pState->titleMenu.mItemIndex == 1 ) {
+            pState->pmode = ssn::mode::bind::ID;
+        } else if( pState->titleMenu.mItemIndex == 2 ) {
             pState->pmode = ssn::mode::exit::ID;
         }
     }
@@ -411,6 +411,40 @@ bool32_t title::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
 
 bool32_t title::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
     pState->titleMenu.render();
+
+    return true;
+}
+
+/// 'ssn::mode::bind' Functions  ///
+
+bool32_t bind::init( ssn::state_t* pState, ssn::input_t* pInput ) {
+    auto cActionTitles = llce::util::pointerize( ssn::ACTION_NAMES );
+    pState->bindMenu = llce::gui::bind_menu_t(
+        pInput, &MENU_ACTIONS[0],
+        cActionTitles.data(), cActionTitles.size(),
+        &ssn::color::BACKGROUND,
+        &ssn::color::FOREGROUND,
+        &ssn::color::TEAM[ssn::team::neutral],
+        &ssn::color::OUTOFBOUND );
+
+    return true;
+}
+
+
+bool32_t bind::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
+    pState->bindMenu.update( pDT );
+
+    if( pState->bindMenu.changed(llce::gui::event::select) ) {
+        if( pState->bindMenu.mItemIndex == pState->bindMenu.mItemCount - 1 ) {
+            pState->pmode = ssn::mode::title::ID;
+        }
+    }
+
+    return true;
+}
+
+bool32_t bind::render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
+    pState->bindMenu.render();
 
     return true;
 }
@@ -645,7 +679,7 @@ bool32_t reset::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     auto cResetItems = llce::util::pointerize( RESET_ITEM_TEXT );
     pState->resetMenu = llce::gui::menu_t(
         pInput, &MENU_ACTIONS[0],
-        "GAME!", cResetItems.data(), RESET_ITEM_COUNT,
+        "GAME!", cResetItems.data(), cResetItems.size(),
         &ssn::color::BACKGROUND,
         &ssn::color::FOREGROUND,
         &ssn::color::TEAM[ssn::team::neutral] );

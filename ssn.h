@@ -48,6 +48,7 @@ struct state_t {
     // Menu State //
     llce::gui::menu_t titleMenu;
     llce::gui::menu_t resetMenu;
+    llce::gui::bind_menu_t bindMenu;
     bool8_t resetMenuUpdated;
     uint8_t selectMenuIndex;
 };
