@@ -65,7 +65,7 @@ void particle_t::update( const float64_t pDT ) {
 
 
 void particle_t::render() const {
-    if( this->valid() ) {
+    if( this->valid() && !this->empty() ) {
         llce::gfx::render_context_t particleRC( mPos, mBasisX, mBasisY );
         PARTICLE_RENDER_FUNS[mType]( this );
     }
@@ -73,7 +73,15 @@ void particle_t::render() const {
 
 
 bool32_t particle_t::valid() const {
-    return mLifetime > 0.0f;
+    return mLifetime > 0.0f &&
+        std::isfinite( mBasisX.x ) && std::isfinite( mBasisX.y ) &&
+        std::isfinite( mBasisY.x ) && std::isfinite( mBasisY.y );
+}
+
+
+bool32_t particle_t::empty() const {
+    return glm::length( mBasisX ) < glm::epsilon<float32_t>() ||
+        glm::length( mBasisY ) < glm::epsilon<float32_t>();
 }
 
 /// 'ssn::particle_t' Type Functions ///

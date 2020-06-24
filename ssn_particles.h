@@ -36,6 +36,7 @@ class particle_t {
     void render() const;
 
     bool32_t valid() const;
+    bool32_t empty() const;
 
     /// Class Fields ///
 
