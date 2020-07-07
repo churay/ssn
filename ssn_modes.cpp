@@ -70,14 +70,15 @@ static_assert( SELECT_ITEM_COUNT >= ssn::stage_e::_length,
 void gameboard_render( const ssn::state_t* pState, const ssn::input_t* pInput, const ssn::output_t* pOutput ) {
     const ssn::bounds_t* const bounds = &pState->bounds;
     const ssn::puck_t* const puck = &pState->puck;
-    const ssn::paddle_t* const paddle = &pState->paddle;
+    const ssn::paddle_t* const paddles = &pState->paddles[0];
     const ssn::particulator_t* const particulator = &pState->particulator;
 
     { // Game State Render //
         bounds->render();
         puck->render();
         particulator->render();
-        paddle->render();
+        paddles[ssn::team::left].render();
+        paddles[ssn::team::right].render();
 
         { // Out-of-Bounds Occlusion //
             const float32_t cBoundsBorderSizes[] = {
@@ -144,10 +145,9 @@ bool32_t game::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     pState->puck = ssn::puck_t( llce::circle_t(cStageCenter, cPuckRadius),
         ssn::team::neutral, &pState->bounds );
 
-    // TODO(JRC): Modify this code so that one paddle is generated per team.
-    for( uint8_t team = ssn::team::left; team < ssn::team::right; team++ ) {
+    for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
         vec2f32_t paddleCenter( (team == ssn::team::left) ? 0.25f : 0.75f, 0.5f );
-        pState->paddle = ssn::paddle_t( llce::circle_t(paddleCenter, cPaddleRadius),
+        pState->paddles[team] = ssn::paddle_t( llce::circle_t(paddleCenter, cPaddleRadius),
             static_cast<ssn::team_e>(team), &pState->bounds );
     }
 
@@ -198,32 +198,34 @@ bool32_t game::init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
 
 bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64_t pDT ) {
-    vec2i32_t paddleInput( 0, 0 );
-    bool32_t rushInput = false;
+    vec2i32_t moveInputs[2] = { {0.0f, 0.0f}, {0.0f, 0.0f} };
+    bool32_t rushInputs[2] = { false, false };
 
     { // Input Processing //
-        if( pInput->isDownAct(&TEAM_UP_ACTIONS[0]) ) {
-            paddleInput.y += 1;
-        } if( pInput->isDownAct(&TEAM_DOWN_ACTIONS[0]) ) {
-            paddleInput.y -= 1;
-        } if( pInput->isDownAct(&TEAM_LEFT_ACTIONS[0]) ) {
-            paddleInput.x -= 1;
-        } if( pInput->isDownAct(&TEAM_RIGHT_ACTIONS[0]) ) {
-            paddleInput.x += 1;
-        }
+        for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+            if( pInput->isDownAct(TEAM_UP_ACTIONS[team]) ) {
+                moveInputs[team].y += 1;
+            } if( pInput->isDownAct(TEAM_DOWN_ACTIONS[team]) ) {
+                moveInputs[team].y -= 1;
+            } if( pInput->isDownAct(TEAM_LEFT_ACTIONS[team]) ) {
+                moveInputs[team].x -= 1;
+            } if( pInput->isDownAct(TEAM_RIGHT_ACTIONS[team]) ) {
+                moveInputs[team].x += 1;
+            }
 
-        if( pInput->isPressedAct(&TEAM_GO_ACTIONS[0]) ) {
-            rushInput = true;
+            if( pInput->isPressedAct(TEAM_GO_ACTIONS[team]) ) {
+                rushInputs[team] = true;
+            }
         }
     }
 
     ssn::bounds_t* const bounds = &pState->bounds;
     ssn::puck_t* const puck = &pState->puck;
-    ssn::paddle_t* const paddle = &pState->paddle;
+    ssn::paddle_t* const paddles = &pState->paddles[0];
     ssn::particulator_t* const particulator = &pState->particulator;
 
     { // Game State Update //
-        const bool32_t cPaddleWasRushing = paddle->mAmRushing;
+        const bool32_t cPaddleWasRushing[2] = { paddles[0].mAmRushing, paddles[1].mAmRushing };
 
         // NOTE(JRC): This is handled a bit clumsily so that we recognize round
         // ends the frame they happen instead of a frame late.
@@ -234,21 +236,27 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
         } else if( pState->rt >= ssn::ROUND_DURATION ) {
             pState->pmode = ssn::mode::score::ID;
         } else {
-            paddle->move( paddleInput.x, paddleInput.y );
-            if( rushInput ) { paddle->rush(); }
+            for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+                paddles[team].move( moveInputs[team].x, moveInputs[team].y );
+                if( rushInputs[team] ) { paddles[team].rush(); }
+            }
 
             bounds->update( pDT );
             puck->update( pDT );
-            paddle->update( pDT );
+            paddles[ssn::team::left].update( pDT );
+            paddles[ssn::team::right].update( pDT );
 
-            if( puck->hit(paddle) ) {
-                bounds->claim( paddle );
-                particulator->genHit(
-                    puck->mBounds.mCenter, puck->mVel, 2.25f * puck->mBounds.mRadius );
-                pState->ht += pDT;
-            } if( !cPaddleWasRushing && paddle->mAmRushing ) {
-                particulator->genTrail(
-                    paddle->mBounds.mCenter, paddle->mVel, 2.0f * paddle->mBounds.mRadius );
+            for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
+                ssn::paddle_t* const paddle = &paddles[team];
+                if( puck->hit(paddle) ) {
+                    bounds->claim( paddle );
+                    particulator->genHit(
+                        puck->mBounds.mCenter, puck->mVel, 2.25f * puck->mBounds.mRadius );
+                    pState->ht += pDT;
+                } if( !cPaddleWasRushing[team] && paddle->mAmRushing ) {
+                    particulator->genTrail(
+                        paddle->mBounds.mCenter, paddle->mVel, 2.0f * paddle->mBounds.mRadius );
+                }
             }
         }
 

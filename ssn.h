@@ -35,7 +35,7 @@ struct state_t {
 
     bounds_t bounds;
     puck_t puck;
-    paddle_t paddle;
+    paddle_t paddles[2];
     particulator_t particulator;
 
     // Scoring State //
