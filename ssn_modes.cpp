@@ -136,8 +136,8 @@ bool32_t game::init( ssn::state_t* pState, ssn::input_t* pInput ) {
 
     const vec2f32_t cStageCenter( 0.5f, 0.5f );
     const vec2f32_t cStageDims = ssn::STAGE_SPECS[pState->sid];
-    const float32_t cPaddleRadius = 5.0e-2f;
-    const float32_t cPuckRadius = cPaddleRadius * 6.0e-1f;
+    const float32_t cPaddleRadius = 4.0e-2f;
+    const float32_t cPuckRadius = cPaddleRadius * 5.0e-1f;
 
     pState->bounds = ssn::bounds_t( llce::box_t(cStageCenter, cStageDims,
         llce::geom::anchor2D::mm) );
@@ -146,7 +146,10 @@ bool32_t game::init( ssn::state_t* pState, ssn::input_t* pInput ) {
         ssn::team::neutral, &pState->bounds );
 
     for( uint8_t team = ssn::team::left; team <= ssn::team::right; team++ ) {
-        vec2f32_t paddleCenter( (team == ssn::team::left) ? 0.25f : 0.75f, 0.5f );
+        float32_t paddleXFactor = (team == ssn::team::left) ? 0.25f : 0.75f;
+        vec2f32_t paddleCenter(
+            cStageCenter.x - (cStageDims.x * 0.5f) + cStageDims.x * paddleXFactor,
+            cStageCenter.x - (cStageDims.x * 0.5f) + cStageDims.x * 0.5f );
         pState->paddles[team] = ssn::paddle_t( llce::circle_t(paddleCenter, cPaddleRadius),
             static_cast<ssn::team_e>(team), &pState->bounds );
     }
@@ -253,6 +256,15 @@ bool32_t game::update( ssn::state_t* pState, ssn::input_t* pInput, const float64
                     particulator->genHit(
                         puck->mBounds.mCenter, puck->mVel, 2.25f * puck->mBounds.mRadius );
                     pState->ht += pDT;
+
+                    // NOTE(JRC): If an area is claimed as a result of this hit, we
+                    // slow down the puck again in preparation for the next rally.
+                    if( bounds->mCurrAreaTeam == ssn::team::neutral ) {
+                        const float32_t cVolleyCount = glm::max( 1.0f, bounds->mCurrAreaCount + 0.0f );
+                        const vec2f32_t cVolleyDir = llce::util::normalize( puck->mVel );
+                        puck->mVel = cVolleyDir *
+                            ssn::puck_t::MIN_VEL * cVolleyCount * ssn::puck_t::VEL_MULTIPLIER;
+                    }
                 } if( !cPaddleWasRushing[team] && paddle->mAmRushing ) {
                     particulator->genTrail(
                         paddle->mBounds.mCenter, paddle->mVel, 2.0f * paddle->mBounds.mRadius );

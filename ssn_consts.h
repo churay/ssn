@@ -37,7 +37,7 @@ constexpr static char8_t STAGE_NAMES[][8] = {
 };
 
 constexpr static float64_t HIT_DURATION = 0.3; // units: seconds
-constexpr static float64_t ROUND_DURATION = 20.0; // units: seconds
+constexpr static float64_t ROUND_DURATION = 120.0; // units: seconds
 
 /// Scoring Constants ///
 

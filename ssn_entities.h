@@ -70,8 +70,8 @@ class paddle_t : public team_entity_t {
 
     /// Class Attributes ///
 
-    constexpr static float32_t MOVE_ACCEL = 1.2e0f;     // units: world / second**2
-    constexpr static float32_t MOVE_MAX_VEL = 1.0e0f;   // units: world / second
+    constexpr static float32_t MOVE_ACCEL = 2.0e0f;     // units: world / second**2
+    constexpr static float32_t MOVE_MAX_VEL = 6.0e-1f;  // units: world / second
 
     constexpr static float32_t RUSH_VEL = 3.0e0f;       // units: world / second
     constexpr static float32_t RUSH_DURATION = 5.0e-2f; // units: second
