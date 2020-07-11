@@ -33,7 +33,7 @@ constexpr static update_f MODE_UPDATE_FUNS[] = {
     ssn::mode::game::update, ssn::mode::select::update, ssn::mode::title::update, ssn::mode::score::update, ssn::mode::reset::update, ssn::mode::bind::update };
 constexpr static render_f MODE_RENDER_FUNS[] = {
     ssn::mode::game::render, ssn::mode::select::render, ssn::mode::title::render, ssn::mode::score::render, ssn::mode::reset::render, ssn::mode::bind::render };
-constexpr static uint32_t MODE_COUNT = ARRAY_LEN( MODE_INIT_FUNS );
+constexpr static uint32_t MODE_COUNT = LLCE_ELEM_COUNT( MODE_INIT_FUNS );
 
 /// Interface Functions ///
 

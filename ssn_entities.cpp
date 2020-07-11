@@ -298,7 +298,7 @@ void puck_t::render() const {
             llce::gfx::render::circle( csPuckBounds );
             for( int8_t side = ssn::team::left; side <= ssn::team::right; side++ ) {
                 const float32_t sideAngle = ( M_PI / 2.0f ) + ( side + 0.0f ) * M_PI;
-                const color4u8_t* sideColor = *VECTOR_AT( puckTangible, side ) ?
+                const color4u8_t* sideColor = *LLCE_VECTOR_AT( puckTangible, side ) ?
                     &ssn::color::TEAM[side] : &ssn::color::TEAM[ssn::team::neutral];
 
                 entityCC.update( sideColor );
@@ -315,7 +315,7 @@ bool32_t puck_t::hit( const team_entity_t* pSource ) {
         const vec2i8_t& puckWrapCount = mWrapCounts[bboxIdx];
 
         const vec2i8_t puckTangible = tangible( puckWrapCount );
-        if( !puckBBox.empty() && *VECTOR_AT(puckTangible, pSource->mTeam) ) {
+        if( !puckBBox.empty() && *LLCE_VECTOR_AT(puckTangible, pSource->mTeam) ) {
             llce::circle_t puckBounds( puckBBox.mid(), mBounds.mRadius );
             if( pSource->mBounds.overlaps(puckBounds) ) {
                 puckBounds.exbed( pSource->mBounds );

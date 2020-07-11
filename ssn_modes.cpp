@@ -52,11 +52,11 @@ constexpr static uint32_t SELECT_ITEM_COUNT = SELECT_ITEM_DIMS.x * SELECT_ITEM_D
 
 // Helper Assertions //
 
-static_assert( ARRAY_LEN(STAGE_SPECS) == ssn::stage_e::_length,
+static_assert( LLCE_ELEM_COUNT(STAGE_SPECS) == ssn::stage_e::_length,
     "Incorrect number of stage specifications; "
     "please add the dimension specifications of all stages in enumeration "
     "'ssn::stage::stage_e' to the array 'STAGE_SPECS' in 'ssn_consts.h'." );
-static_assert( ARRAY_LEN(STAGE_NAMES) == ssn::stage_e::_length,
+static_assert( LLCE_ELEM_COUNT(STAGE_NAMES) == ssn::stage_e::_length,
     "Incorrect number of stage names; "
     "please add the names of all stages in enumeration "
     "'ssn::stage::stage_e' to the array 'STAGE_NAMES' in 'ssn_consts.h'." );
@@ -184,7 +184,7 @@ bool32_t game::init( ssn::state_t* pState, ssn::input_t* pInput ) {
     //     const ssn::team::team_e cTestTeams[] = {
     //         ssn::team::left,    // l score: 0.5
     //         ssn::team::right }; // r score: 0.5
-    //     const uint32_t cTestAreaCount = ARRAY_LEN( cTestAreas );
+    //     const uint32_t cTestAreaCount = LLCE_ELEM_COUNT( cTestAreas );
     //     for( uint32_t areaIdx = 0; areaIdx < cTestAreaCount; areaIdx++ ) {
     //         testEntity.change( cTestTeams[areaIdx] );
     //         for( uint32_t cornerIdx = 0; cornerIdx < ssn::bounds_t::AREA_CORNER_COUNT; cornerIdx++ ) {
@@ -573,7 +573,7 @@ bool32_t score::update( ssn::state_t* pState, ssn::input_t* pInput, const float6
     bool32_t phaseResult = true;
 
     float64_t phaseMin = 0.0, phaseMax = 0.0;
-    for( uint32_t phaseIdx = 0; phaseIdx < ARRAY_LEN(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
+    for( uint32_t phaseIdx = 0; phaseIdx < LLCE_ELEM_COUNT(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
         phaseMax = phaseMin + SCORE_PHASE_DURATIONS[phaseIdx];
         if( phaseMin <= pState->st && pState->st < phaseMax ) {
             phaseResult = csUpdateFuns[phaseIdx]( pState, pInput, pDT, pState->st - phaseMin );
@@ -658,7 +658,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
                 llce::gfx::render::box( teamBox );
 
                 char8_t teamText[8];
-                std::snprintf( &teamText[0], ARRAY_LEN(teamText), "%0.2f%%",
+                std::snprintf( &teamText[0], LLCE_ELEM_COUNT(teamText), "%0.2f%%",
                     glm::clamp(100.0f * cTeamScore, 0.0f, 100.0f) );
 
                 tallyCC.update( &ssn::color::INFO );
@@ -682,7 +682,7 @@ bool32_t score::render( const ssn::state_t* pState, const ssn::input_t* pInput, 
     gameboard_render( pState, pInput, pOutput );
 
     float64_t phaseMin = 0.0, phaseMax = 0.0;
-    for( uint32_t phaseIdx = 0; phaseIdx < ARRAY_LEN(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
+    for( uint32_t phaseIdx = 0; phaseIdx < LLCE_ELEM_COUNT(SCORE_PHASE_DURATIONS); phaseIdx++ ) {
         phaseMax = phaseMin + SCORE_PHASE_DURATIONS[phaseIdx];
         if( phaseMin <= pState->st && pState->st < phaseMax ) {
             phaseResult = csRenderFuns[phaseIdx]( pState, pInput, pOutput );
